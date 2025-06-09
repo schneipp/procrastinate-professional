@@ -25,3 +25,6 @@ You know that thing you *should* be doing, but you’re not because... Youtube e
 
 Q: Should i use this on my webserver?
 A: You can. however, it is not secure. i do not check the websocket connection like a sane person would do. I wrote this for internal use inside the vpn. i didn't even use wss ;)
+
+Q: Why another todo app?
+A: i hate ms todo and no other tool uses websockets. i want live updates. if i add a todo on my pc, i want it to appear on my tablet in the exact same second. i don't want to wait for a sync. i want it now. i want it live. i want it in my face. this is the only way to increase the procrastination level to the maximum. i want to see my tasks in real time, so i can ignore them in real time.
