@@ -20,3 +20,8 @@ You know that thing you *should* be doing, but you’re not because... Youtube e
 2. **✨ Websockets and other fancy tech
    Use it on your phone, your pager, your fax machine and within emacs. actually it just needs websockets.
    it syncs automatically and writes your gibberish into json files somewhere. no database needed. it's just a shitty todo app.
+
+## Q&A
+
+Q: Should i use this on my webserver?
+A: You can. however, it is not secure. i do not check the websocket connection like a sane person would do. I wrote this for internal use inside the vpn. i didn't even use wss ;)
