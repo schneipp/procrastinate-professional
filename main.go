@@ -194,6 +194,10 @@ func main() {
 
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`<script>window.location.href = "/static/index.html";</script>`))
+	})
 
 	// WebSocket endpoint
 	http.HandleFunc("/ws", wsHandler)
@@ -201,8 +205,8 @@ func main() {
 	// Start message handler
 	go handleMessages()
 
-	fmt.Println("WebSocket server started on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("WebSocket server started on :8090")
+	if err := http.ListenAndServe(":8090", nil); err != nil {
 		fmt.Println("Error starting server:", err)
 	}
 }
