@@ -9,57 +9,97 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      background: linear-gradient(135deg, #2d1b69, #1a1a2e);
       min-height: 100vh;
       color: #f8f9fa;
     }
+
     body.dark-mode {
-      background: linear-gradient(135deg, #0f0f1a, #0a0a1a);
+      background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
     }
+
     .todo-container {
       max-width: 800px;
       margin: 2rem auto;
       padding: 2rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 15px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      animation: containerFadeIn 0.6s ease-out;
     }
+
+    @keyframes containerFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     body.dark-mode .todo-container {
-      background: rgba(35, 39, 43, 0.8);
-      color: #f8f9fa;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      background: rgba(35, 39, 43, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     }
+
     .todo-item {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
-      padding: 1rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin-bottom: 0.8rem;
+      padding: 1.2rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: todoPlopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+
+    @keyframes todoPlopIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .todo-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(31, 38, 135, 0.2);
+    }
+
     body.dark-mode .todo-item {
-      background: rgba(35, 39, 43, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #f8f9fa;
+      background: rgba(35, 39, 43, 0.4);
     }
+
     .todo-item.completed {
       opacity: 0.7;
       background-color: rgba(248, 249, 250, 0.1);
     }
+
     body.dark-mode .todo-item.completed {
       background-color: rgba(24, 26, 27, 0.8);
     }
+
     .todo-item.completed .todo-text {
       text-decoration: line-through;
       color: #adb5bd;
     }
+
     body.dark-mode .todo-item.completed .todo-text {
       color: #adb5bd;
     }
+
     .connection-status {
       position: fixed;
       bottom: 1rem;
@@ -70,70 +110,100 @@
       z-index: 1000;
       backdrop-filter: blur(5px);
     }
+
     .connection-status.connected {
       background-color: rgba(25, 135, 84, 0.9);
       color: white;
     }
+
     .connection-status.disconnected {
       background-color: rgba(220, 53, 69, 0.9);
       color: white;
     }
+
     .todo-input-group {
       position: relative;
     }
+
     .todo-input-group .btn {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      background: rgba(13, 110, 253, 0.8);
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
       border: none;
       color: white;
+      transition: all 0.3s ease;
     }
+
+    .todo-input-group .btn:hover {
+      background: linear-gradient(135deg, #7e4aff, #5a2dff);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(110, 58, 255, 0.3);
+    }
+
     .todo-input-group .form-control {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       color: white;
+      transition: all 0.3s ease;
     }
+
+    .todo-input-group .form-control:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(110, 58, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(110, 58, 255, 0.2);
+    }
+
     .todo-input-group .form-control::placeholder {
       color: rgba(255, 255, 255, 0.7);
     }
-    .todo-input-group .form-control:focus {
-      box-shadow: none;
-      border-color: rgba(255, 255, 255, 0.2);
-    }
+
     .todo-stats {
       font-size: 0.875rem;
       color: #adb5bd;
       margin-bottom: 1rem;
     }
+
     body.dark-mode .todo-stats {
       color: #adb5bd;
     }
+
     .empty-state {
       text-align: center;
       padding: 2rem;
       color: #adb5bd;
     }
+
     body.dark-mode .empty-state {
       color: #adb5bd;
     }
+
     .empty-state i {
       font-size: 3rem;
       margin-bottom: 1rem;
       opacity: 0.5;
     }
+
     .form-check-input:checked {
-      background-color: #198754;
-      border-color: #198754;
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      border-color: #6e3aff;
     }
+
+    .form-check-input:focus {
+      box-shadow: 0 0 0 3px rgba(110, 58, 255, 0.2);
+    }
+
     .btn-danger {
-      opacity: 0.7;
-      transition: opacity 0.2s;
+      background: linear-gradient(135deg, #ff3a3a, #ff1d1d);
+      border: none;
+      opacity: 0.8;
+      transition: all 0.3s ease;
     }
+
     .btn-danger:hover {
+      background: linear-gradient(135deg, #ff4a4a, #ff2d2d);
       opacity: 1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(255, 58, 58, 0.3);
     }
+
     .thinking-bubble {
       display: none;
       position: fixed;
@@ -148,6 +218,7 @@
       backdrop-filter: blur(5px);
       animation: pulse 1.5s infinite;
     }
+
     h1,
     h2,
     h3,
@@ -158,6 +229,7 @@
       color: #f8f9fa;
       font-size: 1.5rem;
     }
+
     body.dark-mode h1,
     body.dark-mode h2,
     body.dark-mode h3,
@@ -166,29 +238,149 @@
     body.dark-mode h6 {
       color: #f8f9fa;
     }
+
     @keyframes pulse {
       0% {
         opacity: 0.6;
       }
+
       50% {
         opacity: 1;
       }
+
       100% {
         opacity: 0.6;
       }
     }
+
     .darkmode-switch {
-      position: absolute;
-      top: 1.5rem;
-      right: 2rem;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       color: #f8f9fa;
       transition: all 0.3s ease;
     }
+
     .darkmode-switch:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(31, 38, 135, 0.2);
+    }
+
+    .badge {
+      padding: 0.5em 0.8em;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .badge.bg-secondary {
+      background: linear-gradient(135deg, #6e3aff, #4a1dff) !important;
+    }
+
+    .badge.bg-info {
+      background: linear-gradient(135deg, #3a9dff, #1d7fff) !important;
+    }
+
+    .badge.bg-warning {
+      background: linear-gradient(135deg, #ffb13a, #ff9d1d) !important;
+    }
+
+    .nav-tabs {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-tabs .nav-link {
+      color: rgba(255, 255, 255, 0.7);
+      border: none;
+      padding: 0.8rem 1.5rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .nav-tabs .nav-link:hover {
+      color: #fff;
+      border: none;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tabs .nav-link.active {
+      color: #fff;
+      background: transparent;
+      border: none;
+    }
+
+    .nav-tabs .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      border-radius: 2px;
+    }
+
+    .nav-tabs .nav-link .badge {
+      font-size: 0.75rem;
+      padding: 0.25em 0.6em;
+    }
+
+    /* Calendar styles */
+    #calendar {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 600px;
+    }
+
+    .fc {
+      height: 100%;
+    }
+
+    .fc-theme-standard .fc-scrollgrid {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .fc-theme-standard th,
+    .fc-theme-standard td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .fc .fc-toolbar-title {
+      color: #f8f9fa;
+    }
+
+    .fc .fc-button-primary {
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      border: none;
+      color: white;
+    }
+
+    .fc .fc-button-primary:hover {
+      background: linear-gradient(135deg, #7e4aff, #5a2dff);
+    }
+
+    .fc .fc-col-header-cell-cushion {
+      color: #f8f9fa;
+    }
+
+    .fc .fc-daygrid-day-number {
+      color: #f8f9fa;
+    }
+
+    .fc .fc-day-today {
+      background-color: rgba(110, 58, 255, 0.1);
+    }
+
+    .fc-event {
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      border: none;
+      color: white;
+    }
+
+    .fc-event.completed-event {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      opacity: 0.7;
     }
   </style>
 </head>
@@ -212,22 +404,64 @@
         </div>
         <div class="input-group todo-input-group mb-3">
           <input type="text" id="todoSearch" class="form-control" placeholder="Search">
-          <!-- <div class="input-group-append"> -->
-          <!--   <button class="btn btn-primary" onclick="addTodo()"> <i class="bi bi-plus-lg"></i> Add Todo </button> -->
-          <!-- </div> -->
         </div>
       </div>
     </div>
 
     <div class="row">
       <div class="col">
-        <div id="todoList" class="list-group">
-          <!-- Todo items will be added here -->
-        </div>
-        <div id="emptyState" class="empty-state" style="display: none;">
-          <i class="bi bi-check2-circle"></i>
-          <h4>No tasks yet!</h4>
-          <p>Add a task to get started.</p>
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-4" id="todoTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button"
+              role="tab" aria-controls="active" aria-selected="true">
+              Active <span class="badge bg-primary ms-2" id="activeCount">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button"
+              role="tab" aria-controls="completed" aria-selected="false">
+              Completed <span class="badge bg-secondary ms-2" id="completedCount">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar-view"
+              type="button" role="tab" aria-controls="calendar" aria-selected="false">
+              <i class="bi bi-calendar3"></i> Calendar
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="todoTabsContent">
+          <!-- Active Tasks Tab -->
+          <div class="tab-pane fade show active" id="active" role="tabpanel" aria-labelledby="active-tab">
+            <div id="activeTodoList" class="list-group">
+              <!-- Active todo items will be added here -->
+            </div>
+            <div id="activeEmptyState" class="empty-state" style="display: none;">
+              <i class="bi bi-check2-circle"></i>
+              <h4>No active tasks!</h4>
+              <p>Add a task to get started.</p>
+            </div>
+          </div>
+
+          <!-- Completed Tasks Tab -->
+          <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed-tab">
+            <div id="completedTodoList" class="list-group">
+              <!-- Completed todo items will be added here -->
+            </div>
+            <div id="completedEmptyState" class="empty-state" style="display: none;">
+              <i class="bi bi-check2-circle"></i>
+              <h4>No completed tasks!</h4>
+              <p>Complete some tasks to see them here.</p>
+            </div>
+          </div>
+
+          <!-- Calendar Tab -->
+          <div class="tab-pane fade" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
+            <div id="calendar"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -244,10 +478,14 @@
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
   <script>
     let ws;
     let todos = [];
     let todosAll = [];
+    let calendar;
 
     function connect() {
       //extract websocket address from the URL
@@ -323,13 +561,20 @@
       const searchTerm = document.getElementById('todoSearch').value.toLowerCase();
 
       todos = todosAll.filter(todo => todo.text.toLowerCase().includes(searchTerm));
-      renderTodos()
+      renderTodos();
+      updateCalendar();
     }
     function handleWebSocketMessage(data) {
       if (data.type === 'todo_list') {
         todos = data.todos;
         todosAll = data.todos;
         renderTodos();
+        // Initialize calendar if not already done
+        if (!calendar) {
+          initCalendar();
+        } else {
+          updateCalendar();
+        }
       } else if (data.type === 'todo_added') {
         // Hide thinking bubble when server confirms
         document.getElementById('thinkingBubble').style.display = 'none';
@@ -339,65 +584,98 @@
         if (existingIndex === -1) {
           // If it doesn't exist, add it
           todos.push(data.todo);
+          todosAll.push(data.todo);
         } else {
           // If it exists, update it with the server's version
           todos[existingIndex] = data.todo;
+          const allIndex = todosAll.findIndex(t => t.id === data.todo.id);
+          if (allIndex !== -1) {
+            todosAll[allIndex] = data.todo;
+          }
         }
         renderTodos();
+        updateCalendar();
       } else if (data.type === 'todo_updated') {
         const index = todos.findIndex(t => t.id === data.todo.id);
         if (index !== -1) {
           todos[index] = data.todo;
-          renderTodos();
         }
+        const allIndex = todosAll.findIndex(t => t.id === data.todo.id);
+        if (allIndex !== -1) {
+          todosAll[allIndex] = data.todo;
+        }
+        renderTodos();
+        updateCalendar();
       } else if (data.type === 'todo_deleted') {
         todos = todos.filter(t => t.id !== data.todoId);
+        todosAll = todosAll.filter(t => t.id !== data.todoId);
         renderTodos();
+        updateCalendar();
       }
     }
 
     function renderTodos() {
-      const todoList = document.getElementById('todoList');
-      const emptyState = document.getElementById('emptyState');
-      const todoCount = document.getElementById('todoCount');
+      const activeTodoList = document.getElementById('activeTodoList');
+      const completedTodoList = document.getElementById('completedTodoList');
+      const activeEmptyState = document.getElementById('activeEmptyState');
+      const completedEmptyState = document.getElementById('completedEmptyState');
+      const activeCount = document.getElementById('activeCount');
+      const completedCount = document.getElementById('completedCount');
 
-      // Update todo count
-      const remainingTodos = todos.filter(t => !t.completed).length;
-      todoCount.textContent = remainingTodos;
+      // Filter active and completed todos
+      const activeTodos = todos.filter(t => !t.completed);
+      const completedTodos = todos.filter(t => t.completed);
 
-      // Show/hide empty state
-      if (todos.length === 0) {
-        todoList.style.display = 'none';
-        emptyState.style.display = 'block';
+      // Update counts
+      activeCount.textContent = activeTodos.length;
+      completedCount.textContent = completedTodos.length;
+
+      // Update active todos
+      if (activeTodos.length === 0) {
+        activeTodoList.style.display = 'none';
+        activeEmptyState.style.display = 'block';
       } else {
-        todoList.style.display = 'block';
-        emptyState.style.display = 'none';
+        activeTodoList.style.display = 'block';
+        activeEmptyState.style.display = 'none';
+        activeTodoList.innerHTML = activeTodos.map(todo => createTodoHTML(todo)).join('');
       }
 
-      todoList.innerHTML = todos.map(todo => `
-                <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="form-check flex-grow-1">
-                            <input class="form-check-input" type="checkbox" 
-                                   ${todo.completed ? 'checked' : ''} 
-                                   onchange="toggleTodo(${todo.id})">
-                            <label class="form-check-label todo-text">
-                                ${todo.text}
-                            </label>
-                            <div class="todo-details mt-2">
-                                ${todo.category ? `<span class="badge bg-secondary me-2">${todo.category}</span>` : ''}
-                                ${todo.tags && todo.tags.length > 0 ? todo.tags.map(tag =>
+      // Update completed todos
+      if (completedTodos.length === 0) {
+        completedTodoList.style.display = 'none';
+        completedEmptyState.style.display = 'block';
+      } else {
+        completedTodoList.style.display = 'block';
+        completedEmptyState.style.display = 'none';
+        completedTodoList.innerHTML = completedTodos.map(todo => createTodoHTML(todo)).join('');
+      }
+    }
+
+    function createTodoHTML(todo) {
+      return `
+        <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="form-check flex-grow-1">
+              <input class="form-check-input" type="checkbox" 
+                     ${todo.completed ? 'checked' : ''} 
+                     onchange="toggleTodo(${todo.id})">
+              <label class="form-check-label todo-text">
+                ${todo.text}
+              </label>
+              <div class="todo-details mt-2">
+                ${todo.category ? `<span class="badge bg-secondary me-2">${todo.category}</span>` : ''}
+                ${todo.tags && todo.tags.length > 0 ? todo.tags.map(tag =>
         `<span class="badge bg-info me-1">${tag}</span>`
       ).join('') : ''}
-                                ${todo.duedate ? `<span class="badge bg-warning me-2"><i class="bi bi-calendar"></i> ${todo.duedate}</span>` : ''}
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-danger ms-2" onclick="deleteTodo(${todo.id})">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                ${todo.duedate ? `<span class="badge bg-warning me-2"><i class="bi bi-calendar"></i> ${todo.duedate}</span>` : ''}
+              </div>
+            </div>
+            <button class="btn btn-sm btn-danger ms-2" onclick="deleteTodo(${todo.id})">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
     }
 
     function toggleTodo(id) {
@@ -442,7 +720,7 @@
     }
     document.getElementById('darkModeSwitch').addEventListener('click', toggleDarkMode);
     // On load, set mode from localStorage or system preference
-    (function() {
+    (function () {
       const saved = localStorage.getItem('darkMode');
       if (saved === '1' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         setDarkMode(true);
@@ -451,7 +729,75 @@
       }
     })();
 
-    connect();
+    function initCalendar() {
+      const calendarEl = document.getElementById('calendar');
+      if (!calendarEl) {
+        console.error('Calendar element not found');
+        return;
+      }
+
+      try {
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek'
+          },
+          events: getCalendarEvents(),
+          eventClick: function (info) {
+            const todoId = parseInt(info.event.id);
+            const todo = todosAll.find(t => t.id === todoId);
+            if (todo) {
+              alert(`Todo: ${todo.text}\nStatus: ${todo.completed ? 'Completed' : 'Active'}\nDue: ${todo.duedate || 'No due date'}`);
+            }
+          }
+        });
+        calendar.render();
+        console.log('Calendar initialized successfully');
+      } catch (error) {
+        console.error('Error initializing calendar:', error);
+      }
+    }
+
+    function getCalendarEvents() {
+      const events = todos
+        .filter(todo => todo.duedate) // Only include todos with due dates
+        .map(todo => ({
+          id: todo.id.toString(),
+          title: todo.text,
+          start: todo.duedate,
+          className: todo.completed ? 'completed-event' : 'active-event'
+        }));
+
+      console.log('Calendar events:', events);
+      return events;
+    }
+
+    function updateCalendar() {
+      if (calendar) {
+        const events = getCalendarEvents();
+        calendar.removeAllEvents();
+        calendar.addEventSource(events);
+        console.log('Calendar updated with events:', events);
+      }
+    }
+
+    // Initialize connection on DOM ready - calendar will be initialized when todos are loaded
+    document.addEventListener('DOMContentLoaded', function () {
+      connect();
+
+      // Re-render calendar when tab becomes visible
+      const calendarTab = document.getElementById('calendar-tab');
+      if (calendarTab) {
+        calendarTab.addEventListener('shown.bs.tab', function () {
+          if (calendar) {
+            calendar.updateSize();
+            calendar.render();
+          }
+        });
+      }
+    });
   </script>
 </body>
 
