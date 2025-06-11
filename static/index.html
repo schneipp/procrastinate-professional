@@ -135,6 +135,17 @@
       animation: pulse 1.5s infinite;
     }
 
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      color: #343a40;
+      font-size: 1.5rem;
+    }
+
     @keyframes pulse {
       0% {
         opacity: 0.6;
@@ -160,10 +171,16 @@
           <span id="todoCount">0</span> tasks remaining
         </div>
         <div class="input-group todo-input-group mb-3">
-          <input type="text" id="todoInput" class="form-control" placeholder="What needs to be done?">
+          <input type="text" id="todoInput" class="form-control" autofocus placeholder="What needs to be done?">
           <div class="input-group-append">
             <button class="btn btn-primary" onclick="addTodo()"> <i class="bi bi-plus-lg"></i> Add Todo </button>
           </div>
+        </div>
+        <div class="input-group todo-input-group mb-3">
+          <input type="text" id="todoSearch" class="form-control" placeholder="Search">
+          <!-- <div class="input-group-append"> -->
+          <!--   <button class="btn btn-primary" onclick="addTodo()"> <i class="bi bi-plus-lg"></i> Add Todo </button> -->
+          <!-- </div> -->
         </div>
       </div>
     </div>
@@ -196,6 +213,7 @@
   <script>
     let ws;
     let todos = [];
+    let todosAll = [];
 
     function connect() {
       //extract websocket address from the URL
@@ -265,9 +283,18 @@
       }
     }
 
+    document.getElementById('todoSearch').addEventListener('input', searchTodos);
+
+    function searchTodos() {
+      const searchTerm = document.getElementById('todoSearch').value.toLowerCase();
+
+      todos = todosAll.filter(todo => todo.text.toLowerCase().includes(searchTerm));
+      renderTodos()
+    }
     function handleWebSocketMessage(data) {
       if (data.type === 'todo_list') {
         todos = data.todos;
+        todosAll = data.todos;
         renderTodos();
       } else if (data.type === 'todo_added') {
         // Hide thinking bubble when server confirms
