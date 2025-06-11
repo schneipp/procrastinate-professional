@@ -382,6 +382,96 @@
       background: linear-gradient(135deg, #6c757d, #495057);
       opacity: 0.7;
     }
+
+    /* Tag Cloud Styles */
+    .tag-cloud {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    body.dark-mode .tag-cloud {
+      background: rgba(35, 39, 43, 0.3);
+    }
+
+    .tag-cloud h6 {
+      font-size: 0.875rem;
+      color: #adb5bd;
+      margin-bottom: 0.75rem;
+    }
+
+    .tag-item {
+      background: rgba(110, 58, 255, 0.1);
+      color: #f8f9fa;
+      border: 1px solid rgba(110, 58, 255, 0.3);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      position: relative;
+    }
+
+    .tag-item:hover {
+      background: rgba(110, 58, 255, 0.2);
+      border-color: rgba(110, 58, 255, 0.5);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(110, 58, 255, 0.2);
+      color: #fff;
+    }
+
+    .tag-item.active {
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      border-color: #6e3aff;
+      color: white;
+    }
+
+    .tag-item .tag-count {
+      margin-left: 0.4rem;
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    .tag-item.size-xs {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .tag-item.size-sm {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .tag-item.size-md {
+      font-size: 0.875rem;
+      opacity: 0.9;
+    }
+
+    .tag-item.size-lg {
+      font-size: 1rem;
+      opacity: 1;
+    }
+
+    .tag-item.size-xl {
+      font-size: 1.1rem;
+      opacity: 1;
+      font-weight: 600;
+    }
+
+    .btn-outline-secondary {
+      color: #adb5bd;
+      border-color: rgba(255, 255, 255, 0.2);
+      font-size: 0.8rem;
+    }
+
+    .btn-outline-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
   </style>
 </head>
 
@@ -404,6 +494,20 @@
         </div>
         <div class="input-group todo-input-group mb-3">
           <input type="text" id="todoSearch" class="form-control" placeholder="Search">
+        </div>
+
+        <!-- Tag Cloud -->
+        <div id="tagCloud" class="tag-cloud mb-4" style="display: none;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="text-muted mb-0">Filter by tags:</h6>
+            <button id="clearTagFilter" class="btn btn-sm btn-outline-secondary" onclick="clearTagFilter()"
+              style="display: none;">
+              <i class="bi bi-x"></i> Clear filter
+            </button>
+          </div>
+          <div id="tagContainer" class="d-flex flex-wrap gap-2">
+            <!-- Tags will be populated here -->
+          </div>
         </div>
       </div>
     </div>
@@ -486,6 +590,7 @@
     let todos = [];
     let todosAll = [];
     let calendar;
+    let selectedTag = null;
 
     function connect() {
       //extract websocket address from the URL
@@ -560,7 +665,12 @@
     function searchTodos() {
       const searchTerm = document.getElementById('todoSearch').value.toLowerCase();
 
-      todos = todosAll.filter(todo => todo.text.toLowerCase().includes(searchTerm));
+      todos = todosAll.filter(todo => {
+        const matchesSearch = todo.text.toLowerCase().includes(searchTerm);
+        const matchesTag = !selectedTag || (todo.tags && todo.tags.includes(selectedTag));
+        return matchesSearch && matchesTag;
+      });
+
       renderTodos();
       updateCalendar();
     }
@@ -569,6 +679,7 @@
         todos = data.todos;
         todosAll = data.todos;
         renderTodos();
+        renderTagCloud();
         // Initialize calendar if not already done
         if (!calendar) {
           initCalendar();
@@ -594,6 +705,7 @@
           }
         }
         renderTodos();
+        renderTagCloud();
         updateCalendar();
       } else if (data.type === 'todo_updated') {
         const index = todos.findIndex(t => t.id === data.todo.id);
@@ -605,11 +717,13 @@
           todosAll[allIndex] = data.todo;
         }
         renderTodos();
+        renderTagCloud();
         updateCalendar();
       } else if (data.type === 'todo_deleted') {
         todos = todos.filter(t => t.id !== data.todoId);
         todosAll = todosAll.filter(t => t.id !== data.todoId);
         renderTodos();
+        renderTagCloud();
         updateCalendar();
       }
     }
@@ -676,6 +790,83 @@
           </div>
         </div>
       `;
+    }
+
+    function getTagCounts() {
+      const tagCounts = {};
+      todosAll.forEach(todo => {
+        if (!todo.completed && todo.tags && Array.isArray(todo.tags)) {
+          todo.tags.forEach(tag => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
+        }
+      });
+      return tagCounts;
+    }
+
+    function getTagSize(count, maxCount) {
+      const ratio = count / maxCount;
+      if (ratio >= 0.8) return 'size-xl';
+      if (ratio >= 0.6) return 'size-lg';
+      if (ratio >= 0.4) return 'size-md';
+      if (ratio >= 0.2) return 'size-sm';
+      return 'size-xs';
+    }
+
+    function renderTagCloud() {
+      const tagCounts = getTagCounts();
+      const tagCloudElement = document.getElementById('tagCloud');
+      const tagContainer = document.getElementById('tagContainer');
+      const clearButton = document.getElementById('clearTagFilter');
+
+      const tags = Object.keys(tagCounts);
+      if (tags.length === 0) {
+        tagCloudElement.style.display = 'none';
+        return;
+      }
+
+      tagCloudElement.style.display = 'block';
+      const maxCount = Math.max(...Object.values(tagCounts));
+
+      // Show/hide clear button based on whether a tag is selected
+      clearButton.style.display = selectedTag ? 'block' : 'none';
+
+      // Sort tags alphabetically
+      tags.sort();
+
+      tagContainer.innerHTML = tags.map(tag => {
+        const count = tagCounts[tag];
+        const sizeClass = getTagSize(count, maxCount);
+        const isActive = selectedTag === tag;
+
+        return `
+          <span class="tag-item ${sizeClass} ${isActive ? 'active' : ''}" 
+                onclick="filterByTag('${tag.replace(/'/g, "\\'")}')" 
+                title="Click to filter by ${tag}">
+            ${tag}
+            <span class="tag-count">${count}</span>
+          </span>
+        `;
+      }).join('');
+    }
+
+    function filterByTag(tag) {
+      if (selectedTag === tag) {
+        // If clicking the same tag, clear the filter
+        selectedTag = null;
+      } else {
+        // Set new tag filter
+        selectedTag = tag;
+      }
+
+      searchTodos(); // This will apply both search and tag filters
+      renderTagCloud(); // Re-render to update active states
+    }
+
+    function clearTagFilter() {
+      selectedTag = null;
+      searchTodos(); // This will apply both search and tag filters
+      renderTagCloud(); // Re-render to update active states
     }
 
     function toggleTodo(id) {
