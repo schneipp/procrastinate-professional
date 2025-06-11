@@ -119,6 +119,35 @@
     .btn-danger:hover {
       opacity: 1;
     }
+
+    .thinking-bubble {
+      display: none;
+      position: fixed;
+      bottom: 5rem;
+      right: 1rem;
+      background-color: rgba(13, 110, 253, 0.9);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.6;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.6;
+      }
+    }
   </style>
 </head>
 
@@ -155,6 +184,10 @@
 
   <div id="connectionStatus" class="connection-status disconnected">
     <i class="bi bi-circle-fill"></i> Disconnected
+  </div>
+
+  <div id="thinkingBubble" class="thinking-bubble">
+    <i class="bi bi-cpu"></i> AI is thinking...
   </div>
 
   <!-- Bootstrap 5 JS Bundle -->
@@ -215,11 +248,10 @@
           completed: false
         };
 
-        // Optimistically add the todo to the UI
-        todos.push(todo);
-        renderTodos();
+        // Show thinking bubble
+        document.getElementById('thinkingBubble').style.display = 'block';
 
-        // Send to server
+        // Send to server first
         ws.send(JSON.stringify({
           type: 'add_todo',
           todo: todo
@@ -235,6 +267,9 @@
         todos = data.todos;
         renderTodos();
       } else if (data.type === 'todo_added') {
+        // Hide thinking bubble when server confirms
+        document.getElementById('thinkingBubble').style.display = 'none';
+
         // Check if the todo already exists
         const existingIndex = todos.findIndex(t => t.id === data.todo.id);
         if (existingIndex === -1) {
@@ -277,16 +312,23 @@
 
       todoList.innerHTML = todos.map(todo => `
                 <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="form-check">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="form-check flex-grow-1">
                             <input class="form-check-input" type="checkbox" 
                                    ${todo.completed ? 'checked' : ''} 
                                    onchange="toggleTodo(${todo.id})">
                             <label class="form-check-label todo-text">
                                 ${todo.text}
                             </label>
+                            <div class="todo-details mt-2">
+                                ${todo.category ? `<span class="badge bg-secondary me-2">${todo.category}</span>` : ''}
+                                ${todo.tags && todo.tags.length > 0 ? todo.tags.map(tag =>
+        `<span class="badge bg-info me-1">${tag}</span>`
+      ).join('') : ''}
+                                ${todo.duedate ? `<span class="badge bg-warning me-2"><i class="bi bi-calendar"></i> ${todo.duedate}</span>` : ''}
+                            </div>
                         </div>
-                        <button class="btn btn-sm btn-danger" onclick="deleteTodo(${todo.id})">
+                        <button class="btn btn-sm btn-danger ms-2" onclick="deleteTodo(${todo.id})">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>

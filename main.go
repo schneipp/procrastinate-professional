@@ -1,21 +1,36 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
+
+type OpenAIResponse struct {
+	Category string   `json:"category"`
+	Tags     []string `json:"tags"`
+	Duedate  string   `json:"duedate"`
+}
 
 // Todo represents a single todo item
 type Todo struct {
-	ID        int64  `json:"id"`
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
+	ID        int64    `json:"id"`
+	Text      string   `json:"text"`
+	Category  string   `json:"category"`
+	Tags      []string `json:"tags"`
+	Color     string   `json:"color"`
+	Duedate   string   `json:"duedate"`
+	Completed bool     `json:"completed"`
 }
 
 // Message represents a WebSocket message
@@ -69,14 +84,61 @@ func loadTodos() error {
 			continue
 		}
 
+		fmt.Printf("Loaded todo from %s: ID=%d, Text=%s, Category=%s, Tags=%v, Duedate=%s\n",
+			file.Name(), todo.ID, todo.Text, todo.Category, todo.Tags, todo.Duedate)
+
 		todos = append(todos, todo)
 	}
 
 	return nil
 }
 
+func openai_tag_and_analyze(todo *Todo) {
+	openai_key := os.Getenv("OPENAI_API_KEY")
+	if openai_key == "" {
+		println("OPENAI_API_KEY not set in .env file")
+	}
+	print(openai_key)
+	client := openai.NewClient(
+		option.WithAPIKey(openai_key), // defaults to os.LookupEnv("OPENAI_API_KEY")
+	)
+	date_today := time.Now().Format("2006-01-02")
+	prompt := "You are a category classifier for todo items."
+	prompt += "Given the todo text, classify it into one of the following categories: "
+	prompt += "todo, task. it is a task if there someting with time associated with it, otherwise it is a todo. always repsond in json. no markup please. only JSON. today is the following date: " + date_today + ".\n"
+	prompt += "If the text is not clear, ask for clarification. Format the Response as JSON with the fields 'category' and 'tags' and 'duedate' \n\n\nThe text to analyze is: " + todo.Text
+
+	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(prompt),
+		},
+		Model: openai.ChatModelGPT4o,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	println(chatCompletion.Choices[0].Message.Content)
+	var response OpenAIResponse
+	cleanup2 := chatCompletion.Choices[0].Message.Content
+	// remove the first and alast line of the response, which is not valid JSON
+	err = json.Unmarshal([]byte(cleanup2), &response)
+	if err != nil {
+		println("Error unmarshalling response:", err.Error())
+	}
+	print(response.Category)
+	print(response.Tags)
+	print(response.Duedate)
+	todo.Tags = response.Tags
+	todo.Category = response.Category
+	todo.Duedate = response.Duedate
+}
+
 // saveTodo saves a single todo to a JSON file
 func saveTodo(todo Todo) error {
+	// First analyze the todo with OpenAI
+	openai_tag_and_analyze(&todo)
+
+	// Then marshal and save
 	data, err := json.Marshal(todo)
 	if err != nil {
 		return fmt.Errorf("failed to marshal todo: %v", err)
@@ -110,6 +172,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		Todos: todos,
 	}
 	data, _ := json.Marshal(msg)
+	fmt.Printf("Sending initial todo list: %s\n", string(data))
 	conn.WriteMessage(websocket.TextMessage, data)
 
 	for {
@@ -130,11 +193,16 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		switch msg.Type {
 		case "add_todo":
 			if msg.Todo != nil {
+				// Analyze the todo first
+				openai_tag_and_analyze(msg.Todo)
+				// Then add it to the list
 				todos = append(todos, *msg.Todo)
 				if err := saveTodo(*msg.Todo); err != nil {
 					fmt.Printf("Error saving todo: %v\n", err)
 				}
 				msg.Type = "todo_added"
+				data, _ := json.Marshal(msg)
+				fmt.Printf("Sending todo_added message: %s\n", string(data))
 			}
 
 		case "update_todo":
@@ -191,6 +259,7 @@ func main() {
 	if err := loadTodos(); err != nil {
 		fmt.Printf("Error loading todos: %v\n", err)
 	}
+	godotenv.Load()
 
 	// Serve static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
