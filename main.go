@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,12 +17,15 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/shared"
+	"mvdan.cc/xurls/v2"
 )
 
 type OpenAIResponse struct {
 	Category string   `json:"category"`
 	Tags     []string `json:"tags"`
 	Duedate  string   `json:"duedate"`
+	Summary  string   `json:"summary,omitempty"`
 }
 
 // Todo represents a single todo item
@@ -87,10 +93,56 @@ func loadTodos() error {
 		fmt.Printf("Loaded todo from %s: ID=%d, Text=%s, Category=%s, Tags=%v, Duedate=%s\n",
 			file.Name(), todo.ID, todo.Text, todo.Category, todo.Tags, todo.Duedate)
 
+		format_urls(&todo)
+
 		todos = append(todos, todo)
 	}
 
 	return nil
+}
+
+func format_urls(todo *Todo) {
+	// extract the first url and shorten it
+	// https://asdfasdf.com/fdsafd/%fdsfd => should be asdfasdf.com
+	re := regexp.MustCompile(`https?://[^\s]+`)
+	found := re.FindString(todo.Text)
+	if found == "" {
+		fmt.Println("No URL found")
+		return
+	}
+
+	// Parse the URL to get the path basename
+	parsedURL, err := url.Parse(found)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return
+	}
+
+	// Get the last segment of the path
+	pathSegments := strings.Split(strings.Trim(parsedURL.Path, "/"), "/")
+	basename := ""
+	if len(pathSegments) > 0 {
+		basename = pathSegments[len(pathSegments)-1]
+	} else {
+		basename = parsedURL.Host // fallback to host if path empty
+	}
+
+	// Create the HTML anchor tag
+	htmlLink := fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, found, basename)
+	// todo.Text = re.ReplaceAllString(todo.Text, htmlLink)
+	todo.Text = re.ReplaceAllStringFunc(todo.Text, func(s string) string {
+		if s == found {
+			// Replace once, then subsequent calls return original string
+			found = "" // clear so we don't replace again
+			return htmlLink
+		}
+		return s
+	})
+
+	fmt.Println(htmlLink)
+
+	todo.Text = strings.ReplaceAll(todo.Text, "```html", "")
+	todo.Text = strings.ReplaceAll(todo.Text, "```", "")
 }
 
 func openai_tag_and_analyze(todo *Todo) {
@@ -106,17 +158,23 @@ func openai_tag_and_analyze(todo *Todo) {
 	prompt := "You are a category classifier for todo items."
 	prompt += "Given the todo text, classify it into one of the following categories: "
 	prompt += "todo, task. it is a task if there someting with time associated with it, otherwise it is a todo. always repsond in json. no markup please. only JSON. today is the following date: " + date_today + ".\n"
-	prompt += "If the text is not clear, ask for clarification. Format the Response as JSON with the fields 'category' and 'tags' and 'duedate' \n\n\nThe text to analyze is: " + todo.Text
+	prompt += "If the text is not clear, ask for clarification. Format the Response as JSON with the fields 'category' and 'tags' and 'duedate' and if a link is provided, 'summary' \n\n\nThe text to analyze is: " + todo.Text
 
+	format := shared.NewResponseFormatJSONObjectParam()
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.UserMessage(prompt),
 		},
+		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONObject: &format,
+		},
 		Model: openai.ChatModelGPT4o,
+		// Model: openai.ChatModelGPT4oSearchPreview,
 	})
 	if err != nil {
 		panic(err.Error())
 	}
+	println("OpenAI response received")
 	println(chatCompletion.Choices[0].Message.Content)
 	var response OpenAIResponse
 	cleanup2 := chatCompletion.Choices[0].Message.Content
@@ -133,10 +191,42 @@ func openai_tag_and_analyze(todo *Todo) {
 	todo.Duedate = response.Duedate
 }
 
+func openai_summarizeurls(todo *Todo) {
+	openai_key := os.Getenv("OPENAI_API_KEY")
+	if openai_key == "" {
+		println("OPENAI_API_KEY not set in .env file")
+	}
+	print(openai_key)
+	client := openai.NewClient(
+		option.WithAPIKey(openai_key), // defaults to os.LookupEnv("OPENAI_API_KEY")
+	)
+
+	extractor := xurls.Relaxed()
+	url := extractor.FindString(todo.Text)
+	// for _, url := range urls {
+	prompt := "You provide a summary in html format. you only respond in html for the provided url. only a few sentences. if there is contact information provided, add that" + url
+	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(prompt),
+		},
+		Model: openai.ChatModelGPT4oSearchPreview,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	println("OpenAI response received")
+	println(chatCompletion.Choices[0].Message.Content)
+	summary := chatCompletion.Choices[0].Message.Content
+	todo.Text += "    <br /><br />" + summary
+}
+
+//}
+
 // saveTodo saves a single todo to a JSON file
 func saveTodo(todo Todo) error {
 	// First analyze the todo with OpenAI
 	openai_tag_and_analyze(&todo)
+	openai_summarizeurls(&todo)
 
 	// Then marshal and save
 	data, err := json.Marshal(todo)
@@ -200,6 +290,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 				if err := saveTodo(*msg.Todo); err != nil {
 					fmt.Printf("Error saving todo: %v\n", err)
 				}
+				// reset
+				todos = nil
+				loadTodos()
 				msg.Type = "todo_added"
 				data, _ := json.Marshal(msg)
 				fmt.Printf("Sending todo_added message: %s\n", string(data))
