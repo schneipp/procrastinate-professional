@@ -198,7 +198,10 @@
     let todos = [];
 
     function connect() {
-      ws = new WebSocket("ws://beni:8090/ws");
+      //extract websocket address from the URL
+      let websocketAddress = window.location.href;
+      websocketAddress = websocketAddress.replace("/static", "/ws").replace("http", "ws").replace("https", "wss").replace(/\/$/, "");
+      ws = new WebSocket(websocketAddress);
 
       ws.onopen = function () {
         console.log("Connected to WebSocket server");
