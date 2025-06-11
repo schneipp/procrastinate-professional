@@ -11,43 +11,55 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style>
     body {
-      background-color: #f8f9fa;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
       min-height: 100vh;
+      color: #f8f9fa;
     }
-
+    body.dark-mode {
+      background: linear-gradient(135deg, #0f0f1a, #0a0a1a);
+    }
     .todo-container {
       max-width: 800px;
       margin: 2rem auto;
       padding: 2rem;
-      background: white;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 15px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-
+    body.dark-mode .todo-container {
+      background: rgba(35, 39, 43, 0.8);
+      color: #f8f9fa;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
     .todo-item {
-      background: white;
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       margin-bottom: 0.5rem;
       padding: 1rem;
-      border: 1px solid #e9ecef;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
     }
-
-    .todo-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    body.dark-mode .todo-item {
+      background: rgba(35, 39, 43, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8f9fa;
     }
-
     .todo-item.completed {
       opacity: 0.7;
-      background-color: #f8f9fa;
+      background-color: rgba(248, 249, 250, 0.1);
     }
-
+    body.dark-mode .todo-item.completed {
+      background-color: rgba(24, 26, 27, 0.8);
+    }
     .todo-item.completed .todo-text {
       text-decoration: line-through;
-      color: #6c757d;
+      color: #adb5bd;
     }
-
+    body.dark-mode .todo-item.completed .todo-text {
+      color: #adb5bd;
+    }
     .connection-status {
       position: fixed;
       bottom: 1rem;
@@ -58,68 +70,70 @@
       z-index: 1000;
       backdrop-filter: blur(5px);
     }
-
     .connection-status.connected {
       background-color: rgba(25, 135, 84, 0.9);
       color: white;
     }
-
     .connection-status.disconnected {
       background-color: rgba(220, 53, 69, 0.9);
       color: white;
     }
-
     .todo-input-group {
       position: relative;
     }
-
     .todo-input-group .btn {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
+      background: rgba(13, 110, 253, 0.8);
+      border: none;
+      color: white;
     }
-
     .todo-input-group .form-control {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
     }
-
+    .todo-input-group .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
     .todo-input-group .form-control:focus {
       box-shadow: none;
-      border-color: #dee2e6;
+      border-color: rgba(255, 255, 255, 0.2);
     }
-
     .todo-stats {
       font-size: 0.875rem;
-      color: #6c757d;
+      color: #adb5bd;
       margin-bottom: 1rem;
     }
-
+    body.dark-mode .todo-stats {
+      color: #adb5bd;
+    }
     .empty-state {
       text-align: center;
       padding: 2rem;
-      color: #6c757d;
+      color: #adb5bd;
     }
-
+    body.dark-mode .empty-state {
+      color: #adb5bd;
+    }
     .empty-state i {
       font-size: 3rem;
       margin-bottom: 1rem;
       opacity: 0.5;
     }
-
     .form-check-input:checked {
       background-color: #198754;
       border-color: #198754;
     }
-
     .btn-danger {
       opacity: 0.7;
       transition: opacity 0.2s;
     }
-
     .btn-danger:hover {
       opacity: 1;
     }
-
     .thinking-bubble {
       display: none;
       position: fixed;
@@ -134,7 +148,6 @@
       backdrop-filter: blur(5px);
       animation: pulse 1.5s infinite;
     }
-
     h1,
     h2,
     h3,
@@ -142,31 +155,52 @@
     h5,
     h6 {
       font-weight: 600;
-      color: #343a40;
+      color: #f8f9fa;
       font-size: 1.5rem;
     }
-
+    body.dark-mode h1,
+    body.dark-mode h2,
+    body.dark-mode h3,
+    body.dark-mode h4,
+    body.dark-mode h5,
+    body.dark-mode h6 {
+      color: #f8f9fa;
+    }
     @keyframes pulse {
       0% {
         opacity: 0.6;
       }
-
       50% {
         opacity: 1;
       }
-
       100% {
         opacity: 0.6;
       }
+    }
+    .darkmode-switch {
+      position: absolute;
+      top: 1.5rem;
+      right: 2rem;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+    .darkmode-switch:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
 
 <body>
-  <div class="container todo-container">
+  <div class="container todo-container position-relative">
+    <button id="darkModeSwitch" class="btn btn-outline-secondary darkmode-switch" title="Toggle light/dark mode">
+      <i id="darkModeIcon" class="bi bi-moon"></i>
+    </button>
     <div class="row mb-4">
       <div class="col">
-        <h1 class="text-center mb-4">Procrastinate Professional</h1>
+        <h1 class="text-center mb-4">AI Task Manager</h1>
         <div class="todo-stats text-center">
           <span id="todoCount">0</span> tasks remaining
         </div>
@@ -390,6 +424,32 @@
         addTodo();
       }
     });
+
+    // Dark mode logic
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeIcon').className = 'bi bi-sun';
+      } else {
+        document.body.classList.remove('dark-mode');
+        document.getElementById('darkModeIcon').className = 'bi bi-moon';
+      }
+      localStorage.setItem('darkMode', enabled ? '1' : '0');
+    }
+    function toggleDarkMode() {
+      const enabled = !document.body.classList.contains('dark-mode');
+      setDarkMode(enabled);
+    }
+    document.getElementById('darkModeSwitch').addEventListener('click', toggleDarkMode);
+    // On load, set mode from localStorage or system preference
+    (function() {
+      const saved = localStorage.getItem('darkMode');
+      if (saved === '1' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setDarkMode(true);
+      } else {
+        setDarkMode(false);
+      }
+    })();
 
     connect();
   </script>
