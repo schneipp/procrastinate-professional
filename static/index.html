@@ -484,7 +484,7 @@
       <div class="col">
         <h1 class="text-center mb-4">AI Task Manager</h1>
         <div class="todo-stats text-center">
-          <span id="todoCount">0</span> tasks remaining
+          <span id="todoCount"></span>&nbsp;
         </div>
         <div class="input-group todo-input-group mb-3">
           <input type="text" id="todoInput" class="form-control" autofocus placeholder="What needs to be done?">
@@ -952,25 +952,26 @@
     }
 
     function getCalendarEvents() {
-      const events = todos
+      const events = todosAll
         .filter(todo => todo.duedate) // Only include todos with due dates
         .map(todo => ({
           id: todo.id.toString(),
           title: todo.text,
           start: todo.duedate,
-          className: todo.completed ? 'completed-event' : 'active-event'
+          className: todo.completed ? 'completed-event' : 'active-event',
+          backgroundColor: todo.completed ? '#6c757d' : '#6e3aff',
+          borderColor: todo.completed ? '#495057' : '#4a1dff'
         }));
 
-      console.log('Calendar events:', events);
       return events;
     }
 
     function updateCalendar() {
       if (calendar) {
-        const events = getCalendarEvents();
         calendar.removeAllEvents();
+        const events = getCalendarEvents();
         calendar.addEventSource(events);
-        console.log('Calendar updated with events:', events);
+        calendar.render();
       }
     }
 
