@@ -109,26 +109,13 @@ A beautiful floating window plugin for Neovim. Opens with `<leader>nrn`.
 - Neovim 0.8+
 - `websocat` for WebSocket communication: `brew install websocat` or `cargo install websocat`
 
-### Getting Your Session Token
-
-1. Log in to the web interface at `http://localhost:8090`
-2. Open browser developer tools (F12)
-3. Go to Application/Storage > Cookies
-4. Copy the value of `session_token`
-
 ### Installation with lazy.nvim
 
 ```lua
 {
   dir = "/path/to/procrastinate-professional/nvim",
   config = function()
-    require("procrastinate").setup({
-      server_url = "ws://localhost:8090/ws",
-      session_token = "your-session-token-here",
-      width = 0.8,   -- 80% of screen width
-      height = 0.8,  -- 80% of screen height
-      border = "rounded",
-    })
+    require("procrastinate").setup({})
   end,
 }
 ```
@@ -139,26 +126,22 @@ A beautiful floating window plugin for Neovim. Opens with `<leader>nrn`.
 use {
   "/path/to/procrastinate-professional/nvim",
   config = function()
-    require("procrastinate").setup({
-      server_url = "ws://localhost:8090/ws",
-      session_token = "your-session-token-here",
-    })
+    require("procrastinate").setup({})
   end,
 }
 ```
 
-### Manual Installation
+### Authentication
 
-Add the nvim directory to your runtimepath in `init.lua`:
+The Neovim client uses a device authentication flow (like Claude Code). No manual token copying required!
 
-```lua
-vim.opt.runtimepath:append("/path/to/procrastinate-professional/nvim")
+1. Run `:Procrastinate` or press `<leader>nrn`
+2. If not authenticated, you'll be prompted for the server URL
+3. A floating window shows a code (e.g., `ABCD-1234`)
+4. Open the displayed URL in your browser and enter the code
+5. Once approved, you're automatically logged in
 
-require("procrastinate").setup({
-  server_url = "ws://localhost:8090/ws",
-  session_token = "your-session-token-here",
-})
-```
+Your credentials are saved to `~/.local/share/nvim/procrastinate.json`.
 
 ### Neovim Keybindings
 
@@ -177,6 +160,8 @@ require("procrastinate").setup({
 | Command | Description |
 |---------|-------------|
 | `:Procrastinate` | Open the todo list |
+| `:ProcrastinateAuth` | Start authentication flow |
+| `:ProcrastinateLogout` | Log out and clear credentials |
 | `:ProcrastinateRefresh` | Refresh the list |
 | `:ProcrastinateAdd` | Add a new todo |
 
@@ -186,12 +171,10 @@ require("procrastinate").setup({
 
 An Emacs client is included for managing your todos without leaving your editor.
 
-### Getting Your Session Token
+### Prerequisites
 
-1. Log in to the web interface at `http://localhost:8090`
-2. Open browser developer tools (F12)
-3. Go to Application/Storage > Cookies
-4. Copy the value of `session_token`
+- Emacs 27.1+
+- `websocket` package from MELPA
 
 ### Vanilla Emacs
 
@@ -205,21 +188,17 @@ An Emacs client is included for managing your todos without leaving your editor.
 (package-install 'websocket)
 ```
 
-2. Add `procrastinate.el` to your load path and configure:
+2. Add `procrastinate.el` to your load path:
 
 ```elisp
 ;; Add to your init.el
 (add-to-list 'load-path "/path/to/procrastinate-professional")
 (require 'procrastinate)
 
-;; Configure
-(setq procrastinate-server-url "ws://localhost:8090/ws")
-(setq procrastinate-session-token "your-session-token-here")
-
 ;; Optional: keybindings
 (global-set-key (kbd "C-c p l") #'procrastinate-list)
 (global-set-key (kbd "C-c p a") #'procrastinate-quick-add)
-(global-set-key (kbd "C-c p c") #'procrastinate-connect)
+(global-set-key (kbd "C-c p A") #'procrastinate-auth)
 ```
 
 ### Doom Emacs
@@ -239,28 +218,39 @@ An Emacs client is included for managing your todos without leaving your editor.
 ;; Load procrastinate from local path
 (use-package! procrastinate
   :load-path "/path/to/procrastinate-professional"
-  :commands (procrastinate-list procrastinate-quick-add procrastinate-connect)
-  :config
-  (setq procrastinate-server-url "ws://localhost:8090/ws")
-  (setq procrastinate-session-token "your-session-token-here"))
+  :commands (procrastinate-list procrastinate-quick-add procrastinate-auth))
 
 ;; Optional: keybindings under leader key
 (map! :leader
       (:prefix ("P" . "procrastinate")
        :desc "Todo list" "l" #'procrastinate-list
        :desc "Quick add" "a" #'procrastinate-quick-add
-       :desc "Connect" "c" #'procrastinate-connect))
+       :desc "Authenticate" "A" #'procrastinate-auth
+       :desc "Logout" "L" #'procrastinate-logout))
 ```
 
 3. Run `doom sync` to install the package.
+
+### Authentication
+
+The Emacs client uses a device authentication flow (like Claude Code). No manual token copying required!
+
+1. Run `M-x procrastinate-auth` (or `M-x procrastinate-list` if not authenticated)
+2. Enter the server URL when prompted (e.g., `http://localhost:8090`)
+3. A buffer shows a code (e.g., `ABCD-1234`) and URL
+4. Open the URL in your browser and enter the code
+5. Once approved, you're automatically logged in
+
+Your credentials are saved to `~/.emacs.d/procrastinate.json`.
 
 ### Emacs Client Usage
 
 | Command | Description |
 |---------|-------------|
-| `M-x procrastinate-connect` | Connect to the server |
+| `M-x procrastinate-auth` | Start authentication flow |
 | `M-x procrastinate-list` | Open the todo list buffer |
 | `M-x procrastinate-quick-add` | Add a todo from anywhere |
+| `M-x procrastinate-logout` | Log out and clear credentials |
 
 ### Emacs Keybindings in the Todo Buffer
 

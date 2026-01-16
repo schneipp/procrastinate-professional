@@ -393,3 +393,145 @@ func GetUsernameFromRequest(r *http.Request) string {
 	}
 	return username
 }
+
+// Device Auth Flow - for CLI/editor clients
+
+// DeviceAuthRequest represents a pending device authentication request
+type DeviceAuthRequest struct {
+	DeviceCode   string    `json:"device_code"`
+	UserCode     string    `json:"user_code"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	Approved     bool      `json:"approved"`
+	Username     string    `json:"username,omitempty"`
+	SessionToken string    `json:"session_token,omitempty"`
+}
+
+var (
+	deviceAuthRequests = make(map[string]*DeviceAuthRequest) // keyed by device_code
+	userCodeIndex      = make(map[string]string)             // user_code -> device_code
+	deviceAuthMux      = &sync.RWMutex{}
+)
+
+// generateUserCode creates a short, user-friendly code
+func generateUserCode() string {
+	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // no confusing chars
+	b := make([]byte, 8)
+	rand.Read(b)
+	code := make([]byte, 8)
+	for i := range code {
+		code[i] = chars[int(b[i])%len(chars)]
+	}
+	// Format as XXXX-XXXX
+	return string(code[:4]) + "-" + string(code[4:])
+}
+
+// generateDeviceCode creates a longer device code
+func generateDeviceCode() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// CreateDeviceAuthRequest creates a new device auth request
+func CreateDeviceAuthRequest() *DeviceAuthRequest {
+	deviceCode := generateDeviceCode()
+	userCode := generateUserCode()
+
+	req := &DeviceAuthRequest{
+		DeviceCode: deviceCode,
+		UserCode:   userCode,
+		ExpiresAt:  time.Now().Add(10 * time.Minute),
+		Approved:   false,
+	}
+
+	deviceAuthMux.Lock()
+	deviceAuthRequests[deviceCode] = req
+	userCodeIndex[userCode] = deviceCode
+	deviceAuthMux.Unlock()
+
+	return req
+}
+
+// GetDeviceAuthByUserCode retrieves a device auth request by user code
+func GetDeviceAuthByUserCode(userCode string) *DeviceAuthRequest {
+	deviceAuthMux.RLock()
+	defer deviceAuthMux.RUnlock()
+
+	deviceCode, exists := userCodeIndex[userCode]
+	if !exists {
+		return nil
+	}
+
+	req, exists := deviceAuthRequests[deviceCode]
+	if !exists || req.ExpiresAt.Before(time.Now()) {
+		return nil
+	}
+
+	return req
+}
+
+// GetDeviceAuthByDeviceCode retrieves a device auth request by device code
+func GetDeviceAuthByDeviceCode(deviceCode string) *DeviceAuthRequest {
+	deviceAuthMux.RLock()
+	defer deviceAuthMux.RUnlock()
+
+	req, exists := deviceAuthRequests[deviceCode]
+	if !exists || req.ExpiresAt.Before(time.Now()) {
+		return nil
+	}
+
+	return req
+}
+
+// ApproveDeviceAuth approves a device auth request
+func ApproveDeviceAuth(userCode, username string) error {
+	deviceAuthMux.Lock()
+	defer deviceAuthMux.Unlock()
+
+	deviceCode, exists := userCodeIndex[userCode]
+	if !exists {
+		return fmt.Errorf("invalid code")
+	}
+
+	req, exists := deviceAuthRequests[deviceCode]
+	if !exists || req.ExpiresAt.Before(time.Now()) {
+		return fmt.Errorf("code expired")
+	}
+
+	// Create session for the device
+	token, err := CreateSession(username)
+	if err != nil {
+		return err
+	}
+
+	req.Approved = true
+	req.Username = username
+	req.SessionToken = token
+
+	return nil
+}
+
+// CleanupExpiredDeviceAuth removes expired device auth requests
+func CleanupExpiredDeviceAuth() {
+	deviceAuthMux.Lock()
+	defer deviceAuthMux.Unlock()
+
+	now := time.Now()
+	for deviceCode, req := range deviceAuthRequests {
+		if req.ExpiresAt.Before(now) {
+			delete(userCodeIndex, req.UserCode)
+			delete(deviceAuthRequests, deviceCode)
+		}
+	}
+}
+
+// RemoveDeviceAuth removes a device auth request after it's been used
+func RemoveDeviceAuth(deviceCode string) {
+	deviceAuthMux.Lock()
+	defer deviceAuthMux.Unlock()
+
+	if req, exists := deviceAuthRequests[deviceCode]; exists {
+		delete(userCodeIndex, req.UserCode)
+		delete(deviceAuthRequests, deviceCode)
+	}
+}

@@ -5,11 +5,12 @@ local M = {}
 
 -- Configuration
 M.config = {
-  server_url = "ws://localhost:8090/ws",
+  server_url = nil,
   session_token = nil,
   width = 0.8,
   height = 0.8,
   border = "rounded",
+  config_path = vim.fn.stdpath("data") .. "/procrastinate.json",
 }
 
 -- State
@@ -18,7 +19,6 @@ local state = {
   users = {},
   current_user = nil,
   connected = false,
-  job_id = nil,
   buf = nil,
   win = nil,
   show_completed = false,
@@ -50,6 +50,41 @@ local function setup_highlights()
   vim.api.nvim_set_hl(0, "ProcrastinateHelp", { fg = "#6a6a6a", italic = true })
   vim.api.nvim_set_hl(0, "ProcrastinateBorder", { fg = "#b388ff" })
   vim.api.nvim_set_hl(0, "ProcrastinateNormal", { bg = "#1e1e2e" })
+  vim.api.nvim_set_hl(0, "ProcrastinateCode", { fg = "#ffcb6b", bold = true })
+  vim.api.nvim_set_hl(0, "ProcrastinateUrl", { fg = "#82aaff", underline = true })
+end
+
+-- Load saved config
+local function load_config()
+  local path = M.config.config_path
+  local file = io.open(path, "r")
+  if file then
+    local content = file:read("*a")
+    file:close()
+    local ok, data = pcall(vim.json.decode, content)
+    if ok and data then
+      if data.server_url then
+        M.config.server_url = data.server_url
+      end
+      if data.session_token then
+        M.config.session_token = data.session_token
+      end
+    end
+  end
+end
+
+-- Save config
+local function save_config()
+  local path = M.config.config_path
+  local data = {
+    server_url = M.config.server_url,
+    session_token = M.config.session_token,
+  }
+  local file = io.open(path, "w")
+  if file then
+    file:write(vim.json.encode(data))
+    file:close()
+  end
 end
 
 -- Strip HTML tags
@@ -60,35 +95,40 @@ end
 
 -- Get todo at cursor
 local function get_todo_at_cursor()
+  if not state.win or not vim.api.nvim_win_is_valid(state.win) then
+    return nil
+  end
   local line = vim.api.nvim_win_get_cursor(state.win)[1]
-  local todo_index = vim.b[state.buf].todo_lines and vim.b[state.buf].todo_lines[line]
+  local todo_lines = vim.b[state.buf].todo_lines
+  local todo_index = todo_lines and todo_lines[line]
   if todo_index then
     return state.todos[todo_index]
   end
   return nil
 end
 
--- Send message via curl (simpler than websocket)
-local function send_message(msg)
-  -- We'll use HTTP polling approach for simplicity
-  -- For real WebSocket, you'd need a plugin like nvim-websocket
-  vim.notify("Procrastinate: Sending...", vim.log.levels.INFO)
+-- Get base URL from server URL
+local function get_base_url()
+  if not M.config.server_url then return nil end
+  return M.config.server_url:gsub("ws://", "http://"):gsub("wss://", "https://"):gsub("/ws$", "")
 end
 
--- Fetch todos via HTTP
+-- Fetch todos via WebSocket (using websocat)
 local function fetch_todos(callback)
   if not M.config.session_token then
-    vim.notify("Procrastinate: No session token configured", vim.log.levels.ERROR)
+    vim.notify("Procrastinate: Not authenticated. Run :ProcrastinateAuth", vim.log.levels.ERROR)
     return
   end
 
-  local url = M.config.server_url:gsub("ws://", "http://"):gsub("wss://", "https://"):gsub("/ws", "")
+  if not M.config.server_url then
+    vim.notify("Procrastinate: No server configured. Run :ProcrastinateAuth", vim.log.levels.ERROR)
+    return
+  end
 
-  -- Use curl to fetch initial state by connecting briefly
   local cmd = string.format(
-    'curl -s -N -H "Cookie: session_token=%s" --max-time 3 "%s/ws" 2>/dev/null | head -1',
+    'timeout 3 websocat -H "Cookie: session_token=%s" "%s" 2>/dev/null | head -1',
     M.config.session_token,
-    url
+    M.config.server_url
   )
 
   vim.fn.jobstart(cmd, {
@@ -107,63 +147,25 @@ local function fetch_todos(callback)
     end,
     on_stderr = function(_, data)
       if data and data[1] and data[1] ~= "" then
-        vim.notify("Procrastinate: " .. data[1], vim.log.levels.ERROR)
+        vim.schedule(function()
+          vim.notify("Procrastinate: " .. data[1], vim.log.levels.ERROR)
+        end)
       end
     end,
   })
 end
 
--- HTTP request helper
-local function http_request(method, endpoint, body, callback)
-  if not M.config.session_token then
-    vim.notify("Procrastinate: No session token configured", vim.log.levels.ERROR)
-    return
-  end
-
-  local url = M.config.server_url:gsub("ws://", "http://"):gsub("wss://", "https://"):gsub("/ws", "")
-
-  local cmd
-  if body then
-    local json_body = vim.json.encode(body)
-    cmd = string.format(
-      'curl -s -X POST -H "Cookie: session_token=%s" -H "Content-Type: application/json" -d \'%s\' "%s%s"',
-      M.config.session_token,
-      json_body:gsub("'", "'\\''"),
-      url,
-      endpoint
-    )
-  else
-    cmd = string.format(
-      'curl -s -H "Cookie: session_token=%s" "%s%s"',
-      M.config.session_token,
-      url,
-      endpoint
-    )
-  end
-
-  vim.fn.jobstart(cmd, {
-    stdout_buffered = true,
-    on_stdout = function(_, data)
-      if callback and data then
-        callback(data[1])
-      end
-    end,
-  })
-end
-
--- WebSocket-style operation via curl
+-- WebSocket send operation
 local function ws_send(msg, callback)
   if not M.config.session_token then
-    vim.notify("Procrastinate: No session token configured", vim.log.levels.ERROR)
+    vim.notify("Procrastinate: Not authenticated", vim.log.levels.ERROR)
     return
   end
 
-  local url = M.config.server_url:gsub("ws://", "http://"):gsub("wss://", "https://"):gsub("/ws", "")
   local json_msg = vim.json.encode(msg)
 
-  -- Use websocat if available, otherwise fall back to curl with upgrade
   local cmd = string.format(
-    'echo \'%s\' | timeout 2 websocat -H "Cookie: session_token=%s" "%s" 2>/dev/null | head -2',
+    'echo \'%s\' | timeout 3 websocat -H "Cookie: session_token=%s" "%s" 2>/dev/null | head -2',
     json_msg:gsub("'", "'\\''"),
     M.config.session_token,
     M.config.server_url
@@ -171,28 +173,10 @@ local function ws_send(msg, callback)
 
   vim.fn.jobstart(cmd, {
     stdout_buffered = true,
-    on_stdout = function(_, data)
-      if data then
-        for _, line in ipairs(data) do
-          if line and line ~= "" then
-            local ok, json = pcall(vim.json.decode, line)
-            if ok then
-              if json.type == "todo_list" then
-                state.todos = json.todos or {}
-              elseif json.type == "todo_added" or json.type == "todo_updated" then
-                -- Refresh
-                M.refresh()
-              elseif json.type == "todo_deleted" then
-                M.refresh()
-              end
-            end
-          end
-        end
-      end
-      if callback then callback() end
-    end,
     on_exit = function()
-      if callback then callback() end
+      if callback then
+        vim.schedule(callback)
+      end
     end,
   })
 end
@@ -383,17 +367,205 @@ local function create_window()
   vim.keymap.set("n", "c", M.toggle_view, opts)
 end
 
+-- Auth floating window
+local function create_auth_window()
+  local width = 60
+  local height = 16
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = row,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    title = " Authenticate ",
+    title_pos = "center",
+  })
+
+  vim.api.nvim_win_set_option(win, "winhl", "Normal:ProcrastinateNormal,FloatBorder:ProcrastinateBorder")
+
+  return buf, win
+end
+
+-- Device auth flow
+function M.auth()
+  -- Ask for server URL if not set
+  local server_url = M.config.server_url
+
+  vim.ui.input({
+    prompt = "Server URL (e.g., http://localhost:8090): ",
+    default = server_url or "http://localhost:8090",
+  }, function(url)
+    if not url or url == "" then
+      vim.notify("Procrastinate: Auth cancelled", vim.log.levels.WARN)
+      return
+    end
+
+    -- Normalize URL
+    url = url:gsub("/$", "")
+    M.config.server_url = url .. "/ws"
+    local base_url = url
+
+    -- Request device code
+    local cmd = string.format('curl -s -X POST "%s/api/device/code"', base_url)
+
+    vim.fn.jobstart(cmd, {
+      stdout_buffered = true,
+      on_stdout = function(_, data)
+        if not data or not data[1] or data[1] == "" then
+          vim.schedule(function()
+            vim.notify("Procrastinate: Failed to connect to server", vim.log.levels.ERROR)
+          end)
+          return
+        end
+
+        local ok, response = pcall(vim.json.decode, data[1])
+        if not ok or not response.user_code then
+          vim.schedule(function()
+            vim.notify("Procrastinate: Invalid server response", vim.log.levels.ERROR)
+          end)
+          return
+        end
+
+        local device_code = response.device_code
+        local user_code = response.user_code
+        local auth_url = base_url .. "/auth/device"
+
+        -- Show auth window
+        vim.schedule(function()
+          local buf, win = create_auth_window()
+
+          local lines = {
+            "",
+            "  ╭────────────────────────────────────────────────────╮",
+            "  │           Device Authentication                   │",
+            "  ╰────────────────────────────────────────────────────╯",
+            "",
+            "  1. Open this URL in your browser:",
+            "",
+            "     " .. auth_url,
+            "",
+            "  2. Enter this code:",
+            "",
+            "     " .. user_code,
+            "",
+            "  Waiting for authorization...",
+            "",
+            "  Press 'q' to cancel",
+          }
+
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+          -- Highlights
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateTitle", 1, 0, -1)
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateTitle", 2, 0, -1)
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateTitle", 3, 0, -1)
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateUrl", 7, 5, -1)
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateCode", 11, 5, -1)
+          vim.api.nvim_buf_add_highlight(buf, -1, "ProcrastinateHelp", 13, 0, -1)
+
+          vim.api.nvim_buf_set_option(buf, "modifiable", false)
+
+          -- Poll for approval
+          local poll_count = 0
+          local max_polls = 120 -- 10 minutes at 5 second intervals
+          local timer = nil
+
+          local function cleanup()
+            if timer then
+              timer:stop()
+              timer:close()
+              timer = nil
+            end
+            if vim.api.nvim_win_is_valid(win) then
+              vim.api.nvim_win_close(win, true)
+            end
+          end
+
+          -- Cancel keymap
+          vim.keymap.set("n", "q", cleanup, { buffer = buf, silent = true })
+          vim.keymap.set("n", "<Esc>", cleanup, { buffer = buf, silent = true })
+
+          local function poll()
+            if poll_count >= max_polls then
+              vim.schedule(function()
+                cleanup()
+                vim.notify("Procrastinate: Auth timeout", vim.log.levels.ERROR)
+              end)
+              return
+            end
+
+            poll_count = poll_count + 1
+
+            local poll_cmd = string.format(
+              'curl -s -X POST -H "Content-Type: application/json" -d \'{"device_code":"%s"}\' "%s/api/device/token"',
+              device_code,
+              base_url
+            )
+
+            vim.fn.jobstart(poll_cmd, {
+              stdout_buffered = true,
+              on_stdout = function(_, poll_data)
+                if not poll_data or not poll_data[1] then return end
+
+                local poll_ok, poll_response = pcall(vim.json.decode, poll_data[1])
+                if not poll_ok then return end
+
+                if poll_response.access_token then
+                  -- Success!
+                  M.config.session_token = poll_response.access_token
+                  save_config()
+
+                  vim.schedule(function()
+                    cleanup()
+                    vim.notify("Procrastinate: Authenticated as " .. (poll_response.username or "user"), vim.log.levels.INFO)
+                  end)
+                elseif poll_response.error == "expired_token" then
+                  vim.schedule(function()
+                    cleanup()
+                    vim.notify("Procrastinate: Auth code expired", vim.log.levels.ERROR)
+                  end)
+                end
+                -- If "authorization_pending", keep polling
+              end,
+            })
+          end
+
+          -- Start polling
+          timer = vim.loop.new_timer()
+          timer:start(0, 5000, vim.schedule_wrap(poll))
+        end)
+      end,
+    })
+  end)
+end
+
 -- Public functions
 
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
   setup_highlights()
+  load_config()
 
   -- Set up the keybinding
   vim.keymap.set("n", "<leader>nrn", M.open, { desc = "Procrastinate: Open todo list" })
 end
 
 function M.open()
+  -- Check if authenticated
+  if not M.config.session_token or not M.config.server_url then
+    vim.notify("Procrastinate: Not authenticated. Run :ProcrastinateAuth", vim.log.levels.WARN)
+    M.auth()
+    return
+  end
+
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     vim.api.nvim_set_current_win(state.win)
     return
@@ -443,9 +615,7 @@ function M.add_todo()
       }
 
       ws_send({ type = "add_todo", todo = todo }, function()
-        vim.schedule(function()
-          M.refresh()
-        end)
+        M.refresh()
       end)
     end
   end)
@@ -461,9 +631,7 @@ function M.toggle_todo()
   todo.completed = not todo.completed
 
   ws_send({ type = "update_todo", todo = todo }, function()
-    vim.schedule(function()
-      M.refresh()
-    end)
+    M.refresh()
   end)
 end
 
@@ -477,12 +645,18 @@ function M.delete_todo()
   vim.ui.select({ "Yes", "No" }, { prompt = "Delete this todo?" }, function(choice)
     if choice == "Yes" then
       ws_send({ type = "delete_todo", todoId = todo.id }, function()
-        vim.schedule(function()
-          M.refresh()
-        end)
+        M.refresh()
       end)
     end
   end)
+end
+
+function M.logout()
+  M.config.session_token = nil
+  save_config()
+  state.connected = false
+  state.current_user = nil
+  vim.notify("Procrastinate: Logged out", vim.log.levels.INFO)
 end
 
 return M

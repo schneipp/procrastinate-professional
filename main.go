@@ -702,6 +702,134 @@ func meHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Device Auth Handlers
+
+func deviceAuthInitHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Allow CORS for CLI clients
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	req := CreateDeviceAuthRequest()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"device_code":      req.DeviceCode,
+		"user_code":        req.UserCode,
+		"expires_in":       600, // 10 minutes
+		"interval":         5,   // poll every 5 seconds
+		"verification_uri": "/auth/device",
+	})
+}
+
+func deviceAuthPollHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Allow CORS for CLI clients
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	var req struct {
+		DeviceCode string `json:"device_code"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid_request"}`, http.StatusBadRequest)
+		return
+	}
+
+	authReq := GetDeviceAuthByDeviceCode(req.DeviceCode)
+	if authReq == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "expired_token"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if !authReq.Approved {
+		w.WriteHeader(http.StatusAccepted)
+		json.NewEncoder(w).Encode(map[string]string{"error": "authorization_pending"})
+		return
+	}
+
+	// Auth approved - return the session token
+	response := map[string]string{
+		"access_token": authReq.SessionToken,
+		"token_type":   "session",
+		"username":     authReq.Username,
+	}
+
+	// Clean up the device auth request
+	RemoveDeviceAuth(req.DeviceCode)
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func deviceAuthPageHandler(w http.ResponseWriter, r *http.Request) {
+	// Check if user is logged in
+	username := GetUsernameFromRequest(r)
+	if username == "" {
+		// Redirect to login with return URL
+		http.Redirect(w, r, "/login?redirect=/auth/device", http.StatusSeeOther)
+		return
+	}
+
+	http.ServeFile(w, r, "./static/device-auth.html")
+}
+
+func deviceAuthApproveHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := GetUsernameFromRequest(r)
+	if username == "" {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		UserCode string `json:"user_code"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "Invalid request"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Normalize user code (remove dashes, uppercase)
+	userCode := strings.ToUpper(strings.ReplaceAll(req.UserCode, "-", ""))
+	if len(userCode) == 8 {
+		userCode = userCode[:4] + "-" + userCode[4:]
+	}
+
+	if err := ApproveDeviceAuth(userCode, username); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
 func main() {
 	godotenv.Load()
 
@@ -749,6 +877,12 @@ func main() {
 	http.HandleFunc("/api/users", usersHandler)
 	http.HandleFunc("/api/me", meHandler)
 	http.HandleFunc("/api/change-password", changePasswordHandler)
+
+	// Device auth endpoints (for CLI/editor clients)
+	http.HandleFunc("/api/device/code", deviceAuthInitHandler)
+	http.HandleFunc("/api/device/token", deviceAuthPollHandler)
+	http.HandleFunc("/auth/device", deviceAuthPageHandler)
+	http.HandleFunc("/api/device/approve", deviceAuthApproveHandler)
 
 	// WebSocket endpoint (protected)
 	http.HandleFunc("/ws", wsHandler)

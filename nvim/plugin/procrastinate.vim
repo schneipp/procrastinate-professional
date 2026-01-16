@@ -11,3 +11,5 @@ let g:loaded_procrastinate = 1
 command! Procrastinate lua require('procrastinate').open()
 command! ProcrastinateRefresh lua require('procrastinate').refresh()
 command! ProcrastinateAdd lua require('procrastinate').add_todo()
+command! ProcrastinateAuth lua require('procrastinate').auth()
+command! ProcrastinateLogout lua require('procrastinate').logout()

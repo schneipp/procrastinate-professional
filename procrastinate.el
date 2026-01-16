@@ -12,6 +12,7 @@
 ;; application with WebSocket sync.
 ;;
 ;; Features:
+;; - Device authentication flow (like Claude Code)
 ;; - Real-time sync via WebSocket
 ;; - Add, complete, and delete todos
 ;; - View active and completed tasks
@@ -19,18 +20,15 @@
 ;;
 ;; Usage:
 ;;   (require 'procrastinate)
-;;   (setq procrastinate-server-url "ws://localhost:8090/ws")
-;;   (setq procrastinate-session-token "your-session-token")
-;;   M-x procrastinate-connect
-;;   M-x procrastinate-list
-;;
-;; Get your session token from the browser cookie after logging in.
+;;   M-x procrastinate-auth    ; First time setup
+;;   M-x procrastinate-list    ; Open todo list
 
 ;;; Code:
 
 (require 'json)
 (require 'websocket)
 (require 'cl-lib)
+(require 'url)
 
 ;;; Customization
 
@@ -39,20 +37,25 @@
   :group 'tools
   :prefix "procrastinate-")
 
-(defcustom procrastinate-server-url "ws://localhost:8090/ws"
+(defcustom procrastinate-server-url nil
   "WebSocket URL of the Procrastinate-Professional server."
-  :type 'string
+  :type '(choice (const nil) string)
   :group 'procrastinate)
 
 (defcustom procrastinate-session-token nil
-  "Session token for authentication.
-Get this from the 'session_token' cookie in your browser after logging in."
+  "Session token for authentication."
   :type '(choice (const nil) string)
   :group 'procrastinate)
 
 (defcustom procrastinate-auto-refresh t
   "Automatically refresh the todo list when updates are received."
   :type 'boolean
+  :group 'procrastinate)
+
+(defcustom procrastinate-config-file
+  (expand-file-name "procrastinate.json" user-emacs-directory)
+  "Path to the configuration file."
+  :type 'string
   :group 'procrastinate)
 
 ;;; Internal Variables
@@ -74,6 +77,15 @@ Get this from the 'session_token' cookie in your browser after logging in."
 
 (defvar procrastinate--reconnect-timer nil
   "Timer for reconnection attempts.")
+
+(defvar procrastinate--auth-poll-timer nil
+  "Timer for polling device auth status.")
+
+(defvar procrastinate--auth-device-code nil
+  "Current device code for authentication.")
+
+(defvar procrastinate--auth-base-url nil
+  "Base URL during authentication.")
 
 ;;; Faces
 
@@ -107,6 +119,38 @@ Get this from the 'session_token' cookie in your browser after logging in."
   "Face for todo owner."
   :group 'procrastinate)
 
+(defface procrastinate-auth-code-face
+  '((t :foreground "gold" :weight bold :height 1.5))
+  "Face for auth code display."
+  :group 'procrastinate)
+
+(defface procrastinate-auth-url-face
+  '((t :foreground "cyan" :underline t))
+  "Face for auth URL display."
+  :group 'procrastinate)
+
+;;; Config persistence
+
+(defun procrastinate--load-config ()
+  "Load configuration from file."
+  (when (file-exists-p procrastinate-config-file)
+    (condition-case nil
+        (let* ((json-object-type 'alist)
+               (json-array-type 'list)
+               (data (json-read-file procrastinate-config-file)))
+          (when-let ((url (alist-get 'server_url data)))
+            (setq procrastinate-server-url url))
+          (when-let ((token (alist-get 'session_token data)))
+            (setq procrastinate-session-token token)))
+      (error nil))))
+
+(defun procrastinate--save-config ()
+  "Save configuration to file."
+  (let ((data `((server_url . ,procrastinate-server-url)
+                (session_token . ,procrastinate-session-token))))
+    (with-temp-file procrastinate-config-file
+      (insert (json-encode data)))))
+
 ;;; WebSocket Connection
 
 (defun procrastinate--make-cookie-header ()
@@ -117,10 +161,15 @@ Get this from the 'session_token' cookie in your browser after logging in."
 (defun procrastinate-connect ()
   "Connect to the Procrastinate-Professional server."
   (interactive)
+  (procrastinate--load-config)
   (when procrastinate--websocket
     (websocket-close procrastinate--websocket))
   (unless procrastinate-session-token
-    (error "Please set `procrastinate-session-token' before connecting"))
+    (procrastinate-auth)
+    (user-error "Not authenticated. Please complete authentication first"))
+  (unless procrastinate-server-url
+    (procrastinate-auth)
+    (user-error "No server configured. Please complete authentication first"))
   (condition-case err
       (setq procrastinate--websocket
             (websocket-open
@@ -219,6 +268,128 @@ Get this from the 'session_token' cookie in your browser after logging in."
     (error "Not connected to server. Run M-x procrastinate-connect"))
   (websocket-send-text procrastinate--websocket (json-encode data)))
 
+;;; Device Authentication
+
+(defun procrastinate-auth ()
+  "Authenticate with the Procrastinate server using device flow."
+  (interactive)
+  (let ((url (read-string "Server URL (e.g., http://localhost:8090): "
+                          (or (and procrastinate-server-url
+                                   (replace-regexp-in-string "/ws$" "" procrastinate-server-url))
+                              "http://localhost:8090"))))
+    (setq url (replace-regexp-in-string "/$" "" url))
+    (setq procrastinate--auth-base-url url)
+    (setq procrastinate-server-url (concat url "/ws"))
+
+    ;; Request device code
+    (let ((url-request-method "POST")
+          (url-request-extra-headers '(("Content-Type" . "application/json"))))
+      (url-retrieve
+       (concat url "/api/device/code")
+       #'procrastinate--handle-device-code-response
+       nil t))))
+
+(defun procrastinate--handle-device-code-response (status)
+  "Handle the device code response. STATUS contains any errors."
+  (if (plist-get status :error)
+      (message "Procrastinate: Failed to connect to server")
+    (goto-char url-http-end-of-headers)
+    (let* ((json-object-type 'alist)
+           (response (json-read)))
+      (if (not (alist-get 'user_code response))
+          (message "Procrastinate: Invalid server response")
+        (let ((device-code (alist-get 'device_code response))
+              (user-code (alist-get 'user_code response))
+              (auth-url (concat procrastinate--auth-base-url "/auth/device")))
+          (setq procrastinate--auth-device-code device-code)
+          (procrastinate--show-auth-buffer user-code auth-url)
+          (procrastinate--start-auth-polling device-code))))))
+
+(defun procrastinate--show-auth-buffer (user-code auth-url)
+  "Display authentication buffer with USER-CODE and AUTH-URL."
+  (let ((buf (get-buffer-create "*Procrastinate Auth*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert "\n")
+        (insert (propertize "  Procrastinate - Device Authentication\n"
+                            'face '(:weight bold :height 1.3)))
+        (insert (make-string 50 ?─) "\n\n")
+        (insert "  1. Open this URL in your browser:\n\n")
+        (insert "     ")
+        (insert (propertize auth-url 'face 'procrastinate-auth-url-face))
+        (insert "\n\n")
+        (insert "  2. Enter this code:\n\n")
+        (insert "     ")
+        (insert (propertize user-code 'face 'procrastinate-auth-code-face))
+        (insert "\n\n")
+        (insert (make-string 50 ?─) "\n")
+        (insert (propertize "  Waiting for authorization...\n" 'face 'font-lock-comment-face))
+        (insert (propertize "  Press 'q' to cancel\n" 'face 'font-lock-comment-face))
+        (setq buffer-read-only t)
+        (local-set-key (kbd "q") #'procrastinate--cancel-auth)
+        (goto-char (point-min))))
+    (switch-to-buffer buf)))
+
+(defun procrastinate--start-auth-polling (device-code)
+  "Start polling for auth completion with DEVICE-CODE."
+  (when procrastinate--auth-poll-timer
+    (cancel-timer procrastinate--auth-poll-timer))
+  (setq procrastinate--auth-poll-timer
+        (run-with-timer 2 5 #'procrastinate--poll-auth device-code)))
+
+(defun procrastinate--poll-auth (device-code)
+  "Poll for authentication status using DEVICE-CODE."
+  (let ((url-request-method "POST")
+        (url-request-extra-headers '(("Content-Type" . "application/json")))
+        (url-request-data (json-encode `((device_code . ,device-code)))))
+    (url-retrieve
+     (concat procrastinate--auth-base-url "/api/device/token")
+     #'procrastinate--handle-poll-response
+     nil t t)))
+
+(defun procrastinate--handle-poll-response (status)
+  "Handle the poll response. STATUS contains any errors."
+  (if (plist-get status :error)
+      nil ; Keep polling
+    (goto-char url-http-end-of-headers)
+    (let* ((json-object-type 'alist)
+           (response (condition-case nil (json-read) (error nil))))
+      (when response
+        (cond
+         ((alist-get 'access_token response)
+          ;; Success!
+          (setq procrastinate-session-token (alist-get 'access_token response))
+          (procrastinate--save-config)
+          (procrastinate--cancel-auth)
+          (message "Procrastinate: Authenticated as %s"
+                   (or (alist-get 'username response) "user"))
+          (when (get-buffer "*Procrastinate Auth*")
+            (kill-buffer "*Procrastinate Auth*")))
+
+         ((string= (alist-get 'error response) "expired_token")
+          (procrastinate--cancel-auth)
+          (message "Procrastinate: Auth code expired")))))))
+
+(defun procrastinate--cancel-auth ()
+  "Cancel the authentication process."
+  (interactive)
+  (when procrastinate--auth-poll-timer
+    (cancel-timer procrastinate--auth-poll-timer)
+    (setq procrastinate--auth-poll-timer nil))
+  (setq procrastinate--auth-device-code nil)
+  (when (get-buffer "*Procrastinate Auth*")
+    (kill-buffer "*Procrastinate Auth*")))
+
+(defun procrastinate-logout ()
+  "Log out and clear saved credentials."
+  (interactive)
+  (procrastinate-disconnect)
+  (setq procrastinate-session-token nil)
+  (setq procrastinate--current-user nil)
+  (procrastinate--save-config)
+  (message "Procrastinate: Logged out"))
+
 ;;; Todo Operations
 
 (defun procrastinate-add (text)
@@ -279,6 +450,10 @@ Get this from the 'session_token' cookie in your browser after logging in."
 (defun procrastinate-list ()
   "Open the Procrastinate todo list buffer."
   (interactive)
+  (procrastinate--load-config)
+  (unless procrastinate-session-token
+    (procrastinate-auth)
+    (user-error "Not authenticated. Please complete authentication first"))
   (unless procrastinate--connected
     (procrastinate-connect)
     (sit-for 1))
@@ -409,6 +584,10 @@ Get this from the 'session_token' cookie in your browser after logging in."
 (defun procrastinate-quick-add ()
   "Quickly add a todo from anywhere."
   (interactive)
+  (procrastinate--load-config)
+  (unless procrastinate-session-token
+    (procrastinate-auth)
+    (user-error "Not authenticated. Please complete authentication first"))
   (unless procrastinate--connected
     (procrastinate-connect)
     (sit-for 1))
