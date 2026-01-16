@@ -177,6 +177,17 @@ local function handle_ws_message(data)
   end
 end
 
+-- Convert HTTP URL to WebSocket URL
+local function to_ws_url(url)
+  if not url then return nil end
+  local ws_url = url:gsub("^http://", "ws://"):gsub("^https://", "wss://")
+  -- Ensure /ws endpoint
+  if not ws_url:match("/ws$") then
+    ws_url = ws_url:gsub("/$", "") .. "/ws"
+  end
+  return ws_url
+end
+
 -- Connect to WebSocket server
 local function ws_connect(callback)
   if state.ws_job then
@@ -195,6 +206,8 @@ local function ws_connect(callback)
     return
   end
 
+  local ws_url = to_ws_url(M.config.server_url)
+
   local stdin = vim.loop.new_pipe(false)
   local stdout = vim.loop.new_pipe(false)
   local stderr = vim.loop.new_pipe(false)
@@ -205,7 +218,7 @@ local function ws_connect(callback)
   handle, pid = vim.loop.spawn("websocat", {
     args = {
       "-H", "Cookie: session_token=" .. M.config.session_token,
-      M.config.server_url
+      ws_url
     },
     stdio = { stdin, stdout, stderr }
   }, function(code, signal)
@@ -535,9 +548,9 @@ function M.auth()
       return
     end
 
-    -- Normalize URL
+    -- Normalize URL - store base URL, ws_connect will convert to ws://
     url = url:gsub("/$", ""):gsub("/ws$", "")
-    M.config.server_url = url .. "/ws"
+    M.config.server_url = url
     local base_url = url
 
     -- Request device code
