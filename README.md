@@ -33,6 +33,7 @@ A: i hate ms todo and no other tool uses websockets. i want live updates. if i a
 - **User authentication**: Login system with session management (2-week sessions).
 - **Multi-user support**: Create users, manage accounts, share tasks with others.
 - **Task sharing**: Share individual tasks with other users. Collaborate on procrastination.
+- **Emacs client**: Because real procrastinators never leave Emacs.
 
 ---
 
@@ -95,6 +96,100 @@ You can create additional users from the user menu (admin only).
 - Select users to share with
 - Shared users can view and complete tasks
 - Only the owner can delete a task
+
+---
+
+## Emacs Client
+
+An Emacs client is included for managing your todos without leaving your editor.
+
+### Getting Your Session Token
+
+1. Log in to the web interface at `http://localhost:8090`
+2. Open browser developer tools (F12)
+3. Go to Application/Storage > Cookies
+4. Copy the value of `session_token`
+
+### Vanilla Emacs
+
+1. Install the `websocket` package from MELPA:
+
+```elisp
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
+(package-refresh-contents)
+(package-install 'websocket)
+```
+
+2. Add `procrastinate.el` to your load path and configure:
+
+```elisp
+;; Add to your init.el
+(add-to-list 'load-path "/path/to/procrastinate-professional")
+(require 'procrastinate)
+
+;; Configure
+(setq procrastinate-server-url "ws://localhost:8090/ws")
+(setq procrastinate-session-token "your-session-token-here")
+
+;; Optional: keybindings
+(global-set-key (kbd "C-c p l") #'procrastinate-list)
+(global-set-key (kbd "C-c p a") #'procrastinate-quick-add)
+(global-set-key (kbd "C-c p c") #'procrastinate-connect)
+```
+
+### Doom Emacs
+
+1. Add the `websocket` package to `~/.doom.d/packages.el`:
+
+```elisp
+;; ~/.doom.d/packages.el
+(package! websocket)
+```
+
+2. Add procrastinate to your config in `~/.doom.d/config.el`:
+
+```elisp
+;; ~/.doom.d/config.el
+
+;; Load procrastinate from local path
+(use-package! procrastinate
+  :load-path "/path/to/procrastinate-professional"
+  :commands (procrastinate-list procrastinate-quick-add procrastinate-connect)
+  :config
+  (setq procrastinate-server-url "ws://localhost:8090/ws")
+  (setq procrastinate-session-token "your-session-token-here"))
+
+;; Optional: keybindings under leader key
+(map! :leader
+      (:prefix ("P" . "procrastinate")
+       :desc "Todo list" "l" #'procrastinate-list
+       :desc "Quick add" "a" #'procrastinate-quick-add
+       :desc "Connect" "c" #'procrastinate-connect))
+```
+
+3. Run `doom sync` to install the package.
+
+### Emacs Client Usage
+
+| Command | Description |
+|---------|-------------|
+| `M-x procrastinate-connect` | Connect to the server |
+| `M-x procrastinate-list` | Open the todo list buffer |
+| `M-x procrastinate-quick-add` | Add a todo from anywhere |
+
+### Keybindings in the Todo Buffer
+
+| Key | Action |
+|-----|--------|
+| `a` | Add new todo |
+| `RET` / `SPC` | Toggle completed |
+| `d` | Delete todo |
+| `g` | Refresh list |
+| `c` | Show completed tasks |
+| `A` | Show active tasks |
+| `q` | Quit |
 
 ---
 
