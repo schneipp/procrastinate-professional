@@ -34,6 +34,7 @@ A: i hate ms todo and no other tool uses websockets. i want live updates. if i a
 - **Multi-user support**: Create users, manage accounts, share tasks with others.
 - **Task sharing**: Share individual tasks with other users. Collaborate on procrastination.
 - **Emacs client**: Because real procrastinators never leave Emacs.
+- **Neovim client**: Beautiful floating window UI for the btw crowd.
 
 ---
 
@@ -96,6 +97,88 @@ You can create additional users from the user menu (admin only).
 - Select users to share with
 - Shared users can view and complete tasks
 - Only the owner can delete a task
+
+---
+
+## Neovim Client
+
+A beautiful floating window plugin for Neovim. Opens with `<leader>nrn`.
+
+### Prerequisites
+
+- Neovim 0.8+
+- `websocat` for WebSocket communication: `brew install websocat` or `cargo install websocat`
+
+### Getting Your Session Token
+
+1. Log in to the web interface at `http://localhost:8090`
+2. Open browser developer tools (F12)
+3. Go to Application/Storage > Cookies
+4. Copy the value of `session_token`
+
+### Installation with lazy.nvim
+
+```lua
+{
+  dir = "/path/to/procrastinate-professional/nvim",
+  config = function()
+    require("procrastinate").setup({
+      server_url = "ws://localhost:8090/ws",
+      session_token = "your-session-token-here",
+      width = 0.8,   -- 80% of screen width
+      height = 0.8,  -- 80% of screen height
+      border = "rounded",
+    })
+  end,
+}
+```
+
+### Installation with packer.nvim
+
+```lua
+use {
+  "/path/to/procrastinate-professional/nvim",
+  config = function()
+    require("procrastinate").setup({
+      server_url = "ws://localhost:8090/ws",
+      session_token = "your-session-token-here",
+    })
+  end,
+}
+```
+
+### Manual Installation
+
+Add the nvim directory to your runtimepath in `init.lua`:
+
+```lua
+vim.opt.runtimepath:append("/path/to/procrastinate-professional/nvim")
+
+require("procrastinate").setup({
+  server_url = "ws://localhost:8090/ws",
+  session_token = "your-session-token-here",
+})
+```
+
+### Neovim Keybindings
+
+| Key | Action |
+|-----|--------|
+| `<leader>nrn` | Open Procrastinate (global) |
+| `a` | Add new todo |
+| `<CR>` / `<Space>` | Toggle completed |
+| `d` | Delete todo |
+| `r` | Refresh list |
+| `c` | Toggle completed/active view |
+| `q` / `<Esc>` | Close window |
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `:Procrastinate` | Open the todo list |
+| `:ProcrastinateRefresh` | Refresh the list |
+| `:ProcrastinateAdd` | Add a new todo |
 
 ---
 
@@ -179,7 +262,7 @@ An Emacs client is included for managing your todos without leaving your editor.
 | `M-x procrastinate-list` | Open the todo list buffer |
 | `M-x procrastinate-quick-add` | Add a todo from anywhere |
 
-### Keybindings in the Todo Buffer
+### Emacs Keybindings in the Todo Buffer
 
 | Key | Action |
 |-----|--------|
