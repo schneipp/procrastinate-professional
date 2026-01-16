@@ -454,6 +454,26 @@
   (setq buffer-read-only t)
   (setq truncate-lines t))
 
+;; Evil mode support
+(with-eval-after-load 'evil
+  (evil-define-key 'normal procrastinate-mode-map
+    (kbd "a") #'procrastinate-add
+    (kbd "RET") #'procrastinate-toggle-at-point
+    (kbd "SPC") #'procrastinate-toggle-at-point
+    (kbd "d") #'procrastinate-delete-at-point
+    (kbd "D") #'procrastinate-delete-at-point
+    (kbd "x") #'procrastinate-toggle-at-point
+    (kbd "g r") #'procrastinate-refresh
+    (kbd "r") #'procrastinate-refresh
+    (kbd "q") #'quit-window
+    (kbd "c") #'procrastinate-show-completed
+    (kbd "A") #'procrastinate-show-active
+    (kbd "j") #'next-line
+    (kbd "k") #'previous-line
+    (kbd "G") #'end-of-buffer
+    (kbd "gg") #'beginning-of-buffer)
+  (evil-set-initial-state 'procrastinate-mode 'normal))
+
 (defvar-local procrastinate--show-completed nil
   "Whether to show completed todos in the current buffer.")
 
