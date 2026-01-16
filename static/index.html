@@ -13,24 +13,25 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(135deg, #2d1b69, #1a1a2e);
+      background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
       min-height: 100vh;
-      color: #f8f9fa;
+      color: #1a202c;
     }
 
     body.dark-mode {
       background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+      color: #f8f9fa;
     }
 
     .todo-container {
       max-width: 800px;
       margin: 2rem auto;
       padding: 2rem;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 20px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
       backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       animation: containerFadeIn 0.6s ease-out;
     }
 
@@ -47,16 +48,17 @@
     }
 
     body.dark-mode .todo-container {
-      background: rgba(35, 39, 43, 0.4);
+      background: rgba(35, 39, 43, 0.8);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .todo-item {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.7);
       border-radius: 12px;
       margin-bottom: 0.8rem;
       padding: 1.2rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       animation: todoPlopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -79,25 +81,30 @@
     }
 
     body.dark-mode .todo-item {
-      background: rgba(35, 39, 43, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .todo-item.completed {
       opacity: 0.7;
-      background-color: rgba(248, 249, 250, 0.1);
+      background-color: rgba(0, 0, 0, 0.03);
     }
 
     body.dark-mode .todo-item.completed {
-      background-color: rgba(24, 26, 27, 0.8);
+      background-color: rgba(0, 0, 0, 0.3);
     }
 
     .todo-item.completed .todo-text {
       text-decoration: line-through;
-      color: #adb5bd;
+      color: #6c757d;
     }
 
     body.dark-mode .todo-item.completed .todo-text {
       color: #adb5bd;
+    }
+
+    .todo-item.shared {
+      border-left: 3px solid #3a9dff;
     }
 
     .connection-status {
@@ -139,25 +146,39 @@
     }
 
     .todo-input-group .form-control {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: white;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      color: #1a202c;
       transition: all 0.3s ease;
     }
 
     .todo-input-group .form-control:focus {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 1);
       border-color: rgba(110, 58, 255, 0.5);
       box-shadow: 0 0 0 3px rgba(110, 58, 255, 0.2);
     }
 
     .todo-input-group .form-control::placeholder {
+      color: rgba(0, 0, 0, 0.5);
+    }
+
+    body.dark-mode .todo-input-group .form-control {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    body.dark-mode .todo-input-group .form-control:focus {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    body.dark-mode .todo-input-group .form-control::placeholder {
       color: rgba(255, 255, 255, 0.7);
     }
 
     .todo-stats {
       font-size: 0.875rem;
-      color: #adb5bd;
+      color: #6c757d;
       margin-bottom: 1rem;
     }
 
@@ -168,7 +189,7 @@
     .empty-state {
       text-align: center;
       padding: 2rem;
-      color: #adb5bd;
+      color: #6c757d;
     }
 
     body.dark-mode .empty-state {
@@ -226,7 +247,7 @@
     h5,
     h6 {
       font-weight: 600;
-      color: #f8f9fa;
+      color: #1a202c;
       font-size: 1.5rem;
     }
 
@@ -254,16 +275,26 @@
     }
 
     .darkmode-switch {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #f8f9fa;
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      color: #1a202c;
       transition: all 0.3s ease;
     }
 
     .darkmode-switch:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.1);
       transform: translateY(-1px);
       box-shadow: 0 4px 15px rgba(31, 38, 135, 0.2);
+    }
+
+    body.dark-mode .darkmode-switch {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .darkmode-switch:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .badge {
@@ -284,12 +315,16 @@
       background: linear-gradient(135deg, #ffb13a, #ff9d1d) !important;
     }
 
+    .badge.bg-shared {
+      background: linear-gradient(135deg, #20c997, #17a2b8) !important;
+    }
+
     .nav-tabs {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .nav-tabs .nav-link {
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(0, 0, 0, 0.6);
       border: none;
       padding: 0.8rem 1.5rem;
       transition: all 0.3s ease;
@@ -297,15 +332,32 @@
     }
 
     .nav-tabs .nav-link:hover {
-      color: #fff;
+      color: #1a202c;
       border: none;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 0, 0, 0.05);
     }
 
     .nav-tabs .nav-link.active {
-      color: #fff;
+      color: #1a202c;
       background: transparent;
       border: none;
+    }
+
+    body.dark-mode .nav-tabs {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .nav-tabs .nav-link {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    body.dark-mode .nav-tabs .nav-link:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    body.dark-mode .nav-tabs .nav-link.active {
+      color: #fff;
     }
 
     .nav-tabs .nav-link.active::after {
@@ -326,11 +378,16 @@
 
     /* Calendar styles */
     #calendar {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.7);
       padding: 20px;
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       min-height: 600px;
+    }
+
+    body.dark-mode #calendar {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .fc {
@@ -338,15 +395,28 @@
     }
 
     .fc-theme-standard .fc-scrollgrid {
+      border: 1px solid rgba(0, 0, 0, 0.15);
+    }
+
+    body.dark-mode .fc-theme-standard .fc-scrollgrid {
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .fc-theme-standard th,
     .fc-theme-standard td {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    body.dark-mode .fc-theme-standard th,
+    body.dark-mode .fc-theme-standard td {
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .fc .fc-toolbar-title {
+      color: #1a202c;
+    }
+
+    body.dark-mode .fc .fc-toolbar-title {
       color: #f8f9fa;
     }
 
@@ -361,10 +431,18 @@
     }
 
     .fc .fc-col-header-cell-cushion {
+      color: #1a202c;
+    }
+
+    body.dark-mode .fc .fc-col-header-cell-cushion {
       color: #f8f9fa;
     }
 
     .fc .fc-daygrid-day-number {
+      color: #1a202c;
+    }
+
+    body.dark-mode .fc .fc-daygrid-day-number {
       color: #f8f9fa;
     }
 
@@ -385,25 +463,30 @@
 
     /* Tag Cloud Styles */
     .tag-cloud {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(0, 0, 0, 0.03);
       border-radius: 12px;
       padding: 1rem;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     body.dark-mode .tag-cloud {
-      background: rgba(35, 39, 43, 0.3);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .tag-cloud h6 {
       font-size: 0.875rem;
-      color: #adb5bd;
+      color: #6c757d;
       margin-bottom: 0.75rem;
+    }
+
+    body.dark-mode .tag-cloud h6 {
+      color: #adb5bd;
     }
 
     .tag-item {
       background: rgba(110, 58, 255, 0.1);
-      color: #f8f9fa;
+      color: #1a202c;
       border: 1px solid rgba(110, 58, 255, 0.3);
       padding: 0.4rem 0.8rem;
       border-radius: 20px;
@@ -415,11 +498,19 @@
       position: relative;
     }
 
+    body.dark-mode .tag-item {
+      color: #f8f9fa;
+    }
+
     .tag-item:hover {
       background: rgba(110, 58, 255, 0.2);
       border-color: rgba(110, 58, 255, 0.5);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(110, 58, 255, 0.2);
+      color: #1a202c;
+    }
+
+    body.dark-mode .tag-item:hover {
       color: #fff;
     }
 
@@ -462,24 +553,278 @@
     }
 
     .btn-outline-secondary {
-      color: #adb5bd;
-      border-color: rgba(255, 255, 255, 0.2);
+      color: #6c757d;
+      border-color: rgba(0, 0, 0, 0.2);
       font-size: 0.8rem;
     }
 
     .btn-outline-secondary:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.3);
+      color: #1a202c;
+    }
+
+    body.dark-mode .btn-outline-secondary {
+      color: #adb5bd;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    body.dark-mode .btn-outline-secondary:hover {
       background-color: rgba(255, 255, 255, 0.1);
       border-color: rgba(255, 255, 255, 0.3);
       color: #fff;
+    }
+
+    /* Unscheduled Tasks Panel */
+    .unscheduled-tasks {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark-mode .unscheduled-tasks {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .unscheduled-tasks h6 {
+      font-size: 0.875rem;
+      color: #6c757d;
+    }
+
+    body.dark-mode .unscheduled-tasks h6 {
+      color: #adb5bd;
+    }
+
+    .draggable-task {
+      background: linear-gradient(135deg, #6e3aff, #4a1dff);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: grab;
+      font-size: 0.875rem;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.2s ease;
+    }
+
+    .draggable-task:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(110, 58, 255, 0.3);
+    }
+
+    .draggable-task:active {
+      cursor: grabbing;
+    }
+
+    /* Edit Modal Styles */
+    .modal-content {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+    }
+
+    body.dark-mode .modal-content {
+      background: rgba(35, 39, 43, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .modal-header {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .modal-footer {
+      border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .modal-title {
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .form-label {
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .form-control {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .form-control:focus {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(110, 58, 255, 0.5);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .btn-close {
+      filter: invert(1);
+    }
+
+    /* Edit button for todo items */
+    .btn-edit {
+      background: linear-gradient(135deg, #3a9dff, #1d7fff);
+      border: none;
+      color: white;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    .btn-edit:hover {
+      background: linear-gradient(135deg, #4aadff, #2d8fff);
+      opacity: 1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(58, 157, 255, 0.3);
+      color: white;
+    }
+
+    .btn-share {
+      background: linear-gradient(135deg, #20c997, #17a2b8);
+      border: none;
+      color: white;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    .btn-share:hover {
+      background: linear-gradient(135deg, #2dd4a7, #20b2c8);
+      opacity: 1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(32, 201, 151, 0.3);
+      color: white;
+    }
+
+    /* User menu dropdown */
+    .user-menu {
+      position: relative;
+    }
+
+    .user-menu .dropdown-menu {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    }
+
+    body.dark-mode .user-menu .dropdown-menu {
+      background: rgba(35, 39, 43, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-menu .dropdown-item {
+      color: #1a202c;
+      transition: all 0.2s ease;
+    }
+
+    body.dark-mode .user-menu .dropdown-item {
+      color: #f8f9fa;
+    }
+
+    .user-menu .dropdown-item:hover {
+      background: rgba(110, 58, 255, 0.1);
+      color: #6e3aff;
+    }
+
+    body.dark-mode .user-menu .dropdown-item:hover {
+      background: rgba(110, 58, 255, 0.2);
+      color: #9d7aff;
+    }
+
+    .user-btn {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      color: #1a202c;
+      border-radius: 20px;
+      padding: 0.4rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .user-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    body.dark-mode .user-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .user-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 0.5rem;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+    }
+
+    /* Form select dark mode */
+    body.dark-mode .form-select {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #f8f9fa;
+    }
+
+    body.dark-mode .form-select:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(110, 58, 255, 0.5);
+      color: #f8f9fa;
+    }
+
+    /* User list in admin panel */
+    .user-list-item {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    body.dark-mode .user-list-item {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .shared-badge {
+      font-size: 0.7rem;
     }
   </style>
 </head>
 
 <body>
   <div class="container todo-container position-relative">
-    <button id="darkModeSwitch" class="btn btn-outline-secondary darkmode-switch" title="Toggle light/dark mode">
-      <i id="darkModeIcon" class="bi bi-moon"></i>
-    </button>
+    <div class="header-controls">
+      <button id="darkModeSwitch" class="btn btn-outline-secondary darkmode-switch" title="Toggle light/dark mode">
+        <i id="darkModeIcon" class="bi bi-moon"></i>
+      </button>
+      <div class="user-menu dropdown">
+        <button class="btn user-btn dropdown-toggle" type="button" id="userMenuBtn" data-bs-toggle="dropdown"
+          aria-expanded="false">
+          <i class="bi bi-person-circle me-1"></i>
+          <span id="currentUsername">User</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuBtn">
+          <li><a class="dropdown-item" href="#" onclick="openChangePasswordModal()"><i
+                class="bi bi-key me-2"></i>Change Password</a></li>
+          <li id="adminMenuItem" style="display: none;"><a class="dropdown-item" href="#"
+              onclick="openUserManagementModal()"><i class="bi bi-people me-2"></i>Manage Users</a></li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item text-danger" href="/api/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+        </ul>
+      </div>
+    </div>
     <div class="row mb-4">
       <div class="col">
         <h1 class="text-center mb-4">AI Task Manager</h1>
@@ -564,6 +909,16 @@
 
           <!-- Calendar Tab -->
           <div class="tab-pane fade" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
+            <!-- Unscheduled Tasks -->
+            <div id="unscheduledTasks" class="unscheduled-tasks mb-4">
+              <h6 class="text-muted mb-3"><i class="bi bi-inbox"></i> Unscheduled Tasks (drag to calendar)</h6>
+              <div id="unscheduledContainer" class="d-flex flex-wrap gap-2">
+                <!-- Unscheduled tasks will be populated here -->
+              </div>
+              <div id="unscheduledEmptyState" class="text-muted small mt-2" style="display: none;">
+                No unscheduled tasks. All active tasks have due dates!
+              </div>
+            </div>
             <div id="calendar"></div>
           </div>
         </div>
@@ -579,6 +934,154 @@
     <i class="bi bi-cpu"></i> AI is thinking...
   </div>
 
+  <!-- Edit Task Modal -->
+  <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editTaskModalLabel">Edit Task</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editTaskId">
+          <div class="mb-3">
+            <label for="editTaskText" class="form-label">Task</label>
+            <textarea class="form-control" id="editTaskText" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="editTaskCategory" class="form-label">Category</label>
+            <input type="text" class="form-control" id="editTaskCategory">
+          </div>
+          <div class="mb-3">
+            <label for="editTaskTags" class="form-label">Tags (comma separated)</label>
+            <input type="text" class="form-control" id="editTaskTags">
+          </div>
+          <div class="mb-3">
+            <label for="editTaskDuedate" class="form-label">Due Date</label>
+            <input type="date" class="form-control" id="editTaskDuedate">
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="editTaskCompleted">
+            <label class="form-check-label" for="editTaskCompleted">Completed</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" onclick="deleteTaskFromModal()">
+            <i class="bi bi-trash"></i> Delete
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveTaskFromModal()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Task Modal -->
+  <div class="modal fade" id="shareTaskModal" tabindex="-1" aria-labelledby="shareTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="shareTaskModalLabel"><i class="bi bi-share me-2"></i>Share Task</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="shareTaskId">
+          <p class="text-muted small">Select users to share this task with:</p>
+          <div id="shareUsersList">
+            <!-- Users will be listed here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveSharing()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="changePasswordModalLabel"><i class="bi bi-key me-2"></i>Change Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="passwordChangeAlert" class="alert" style="display: none;"></div>
+          <div class="mb-3">
+            <label for="currentPassword" class="form-label">Current Password</label>
+            <input type="password" class="form-control" id="currentPassword" required>
+          </div>
+          <div class="mb-3">
+            <label for="newPassword" class="form-label">New Password</label>
+            <input type="password" class="form-control" id="newPassword" required>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm New Password</label>
+            <input type="password" class="form-control" id="confirmPassword" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="changePassword()">Change Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Management Modal -->
+  <div class="modal fade" id="userManagementModal" tabindex="-1" aria-labelledby="userManagementModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userManagementModalLabel"><i class="bi bi-people me-2"></i>Manage Users</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="userManagementAlert" class="alert" style="display: none;"></div>
+
+          <!-- Add New User Form -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <i class="bi bi-person-plus me-2"></i>Add New User
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <input type="text" class="form-control" id="newUsername" placeholder="Username">
+                </div>
+                <div class="col-md-4">
+                  <input type="password" class="form-control" id="newUserPassword" placeholder="Password">
+                </div>
+                <div class="col-md-2">
+                  <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="newUserIsAdmin">
+                    <label class="form-check-label" for="newUserIsAdmin">Admin</label>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-primary w-100" onclick="addNewUser()">Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User List -->
+          <h6>Existing Users</h6>
+          <div id="userList">
+            <!-- Users will be listed here -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -589,13 +1092,38 @@
     let ws;
     let todos = [];
     let todosAll = [];
+    let allUsers = [];
+    let currentUser = null;
+    let isAdmin = false;
     let calendar;
     let selectedTag = null;
+    let currentTab = 'active';
+
+    // Check if user is authenticated
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/me');
+        if (!response.ok) {
+          window.location.href = '/login';
+          return false;
+        }
+        const data = await response.json();
+        currentUser = data.username;
+        isAdmin = data.is_admin;
+        document.getElementById('currentUsername').textContent = currentUser;
+        if (isAdmin) {
+          document.getElementById('adminMenuItem').style.display = 'block';
+        }
+        return true;
+      } catch (e) {
+        window.location.href = '/login';
+        return false;
+      }
+    }
 
     function connect() {
-      //extract websocket address from the URL
       let websocketAddress = window.location.href;
-      websocketAddress = websocketAddress.replace("/static", "/ws").replace("http", "ws").replace("https", "wss").replace(/\/$/, "");
+      websocketAddress = websocketAddress.replace("/static", "/ws").replace("http", "ws").replace("https", "wss").replace(/\/$/, "").replace("/index.html", "");
       ws = new WebSocket(websocketAddress);
 
       ws.onopen = function () {
@@ -643,13 +1171,13 @@
         const todo = {
           id: Date.now(),
           text: text,
-          completed: false
+          completed: false,
+          owner: currentUser,
+          shared_with: []
         };
 
-        // Show thinking bubble
         document.getElementById('thinkingBubble').style.display = 'block';
 
-        // Send to server first
         ws.send(JSON.stringify({
           type: 'add_todo',
           todo: todo
@@ -674,30 +1202,32 @@
       renderTodos();
       updateCalendar();
     }
+
     function handleWebSocketMessage(data) {
       if (data.type === 'todo_list') {
-        todos = data.todos;
-        todosAll = data.todos;
+        todos = data.todos || [];
+        todosAll = data.todos || [];
+        allUsers = data.users || [];
+        if (data.username) {
+          currentUser = data.username;
+          document.getElementById('currentUsername').textContent = currentUser;
+        }
         renderTodos();
         renderTagCloud();
-        // Initialize calendar if not already done
+        renderUnscheduledTasks();
         if (!calendar) {
           initCalendar();
         } else {
           updateCalendar();
         }
       } else if (data.type === 'todo_added') {
-        // Hide thinking bubble when server confirms
         document.getElementById('thinkingBubble').style.display = 'none';
 
-        // Check if the todo already exists
         const existingIndex = todos.findIndex(t => t.id === data.todo.id);
         if (existingIndex === -1) {
-          // If it doesn't exist, add it
           todos.push(data.todo);
           todosAll.push(data.todo);
         } else {
-          // If it exists, update it with the server's version
           todos[existingIndex] = data.todo;
           const allIndex = todosAll.findIndex(t => t.id === data.todo.id);
           if (allIndex !== -1) {
@@ -706,24 +1236,32 @@
         }
         renderTodos();
         renderTagCloud();
+        renderUnscheduledTasks();
         updateCalendar();
       } else if (data.type === 'todo_updated') {
         const index = todos.findIndex(t => t.id === data.todo.id);
         if (index !== -1) {
           todos[index] = data.todo;
+        } else {
+          // Newly shared with us
+          todos.push(data.todo);
         }
         const allIndex = todosAll.findIndex(t => t.id === data.todo.id);
         if (allIndex !== -1) {
           todosAll[allIndex] = data.todo;
+        } else {
+          todosAll.push(data.todo);
         }
         renderTodos();
         renderTagCloud();
+        renderUnscheduledTasks();
         updateCalendar();
       } else if (data.type === 'todo_deleted') {
         todos = todos.filter(t => t.id !== data.todoId);
         todosAll = todosAll.filter(t => t.id !== data.todoId);
         renderTodos();
         renderTagCloud();
+        renderUnscheduledTasks();
         updateCalendar();
       }
     }
@@ -736,15 +1274,12 @@
       const activeCount = document.getElementById('activeCount');
       const completedCount = document.getElementById('completedCount');
 
-      // Filter active and completed todos
       const activeTodos = todos.filter(t => !t.completed);
       const completedTodos = todos.filter(t => t.completed);
 
-      // Update counts
       activeCount.textContent = activeTodos.length;
       completedCount.textContent = completedTodos.length;
 
-      // Update active todos
       if (activeTodos.length === 0) {
         activeTodoList.style.display = 'none';
         activeEmptyState.style.display = 'block';
@@ -754,7 +1289,6 @@
         activeTodoList.innerHTML = activeTodos.map(todo => createTodoHTML(todo)).join('');
       }
 
-      // Update completed todos
       if (completedTodos.length === 0) {
         completedTodoList.style.display = 'none';
         completedEmptyState.style.display = 'block';
@@ -766,12 +1300,16 @@
     }
 
     function createTodoHTML(todo) {
+      const isOwner = !todo.owner || todo.owner === currentUser;
+      const isShared = todo.owner && todo.owner !== currentUser;
+      const hasShares = todo.shared_with && todo.shared_with.length > 0;
+
       return `
-        <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+        <div class="todo-item ${todo.completed ? 'completed' : ''} ${isShared ? 'shared' : ''}" data-id="${todo.id}">
           <div class="d-flex justify-content-between align-items-start">
             <div class="form-check flex-grow-1">
-              <input class="form-check-input" type="checkbox" 
-                     ${todo.completed ? 'checked' : ''} 
+              <input class="form-check-input" type="checkbox"
+                     ${todo.completed ? 'checked' : ''}
                      onchange="toggleTodo(${todo.id})">
               <label class="form-check-label todo-text">
                 ${todo.text}
@@ -782,11 +1320,21 @@
         `<span class="badge bg-info me-1">${tag}</span>`
       ).join('') : ''}
                 ${todo.duedate ? `<span class="badge bg-warning me-2"><i class="bi bi-calendar"></i> ${todo.duedate}</span>` : ''}
+                ${isShared ? `<span class="badge bg-shared me-1"><i class="bi bi-person"></i> ${todo.owner}</span>` : ''}
+                ${hasShares && isOwner ? `<span class="badge bg-shared shared-badge me-1"><i class="bi bi-share"></i> Shared with ${todo.shared_with.length}</span>` : ''}
               </div>
             </div>
-            <button class="btn btn-sm btn-danger ms-2" onclick="deleteTodo(${todo.id})">
-              <i class="bi bi-trash"></i>
-            </button>
+            <div class="d-flex gap-1">
+              ${isOwner ? `<button class="btn btn-sm btn-share" onclick="openShareModal(${todo.id})" title="Share task">
+                <i class="bi bi-share"></i>
+              </button>` : ''}
+              <button class="btn btn-sm btn-edit" onclick="openEditModal(${todo.id})" title="Edit task">
+                <i class="bi bi-pencil"></i>
+              </button>
+              ${isOwner ? `<button class="btn btn-sm btn-danger" onclick="deleteTodo(${todo.id})" title="Delete task">
+                <i class="bi bi-trash"></i>
+              </button>` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -794,8 +1342,9 @@
 
     function getTagCounts() {
       const tagCounts = {};
+      const showCompleted = currentTab === 'completed';
       todosAll.forEach(todo => {
-        if (!todo.completed && todo.tags && Array.isArray(todo.tags)) {
+        if (todo.completed === showCompleted && todo.tags && Array.isArray(todo.tags)) {
           todo.tags.forEach(tag => {
             tagCounts[tag] = (tagCounts[tag] || 0) + 1;
           });
@@ -828,10 +1377,8 @@
       tagCloudElement.style.display = 'block';
       const maxCount = Math.max(...Object.values(tagCounts));
 
-      // Show/hide clear button based on whether a tag is selected
       clearButton.style.display = selectedTag ? 'block' : 'none';
 
-      // Sort tags alphabetically
       tags.sort();
 
       tagContainer.innerHTML = tags.map(tag => {
@@ -840,8 +1387,8 @@
         const isActive = selectedTag === tag;
 
         return `
-          <span class="tag-item ${sizeClass} ${isActive ? 'active' : ''}" 
-                onclick="filterByTag('${tag.replace(/'/g, "\\'")}')" 
+          <span class="tag-item ${sizeClass} ${isActive ? 'active' : ''}"
+                onclick="filterByTag('${tag.replace(/'/g, "\\'")}')"
                 title="Click to filter by ${tag}">
             ${tag}
             <span class="tag-count">${count}</span>
@@ -852,21 +1399,19 @@
 
     function filterByTag(tag) {
       if (selectedTag === tag) {
-        // If clicking the same tag, clear the filter
         selectedTag = null;
       } else {
-        // Set new tag filter
         selectedTag = tag;
       }
 
-      searchTodos(); // This will apply both search and tag filters
-      renderTagCloud(); // Re-render to update active states
+      searchTodos();
+      renderTagCloud();
     }
 
     function clearTagFilter() {
       selectedTag = null;
-      searchTodos(); // This will apply both search and tag filters
-      renderTagCloud(); // Re-render to update active states
+      searchTodos();
+      renderTagCloud();
     }
 
     function toggleTodo(id) {
@@ -887,7 +1432,6 @@
       }));
     }
 
-    // Handle Enter key in input
     document.getElementById('todoInput').addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
         addTodo();
@@ -905,12 +1449,14 @@
       }
       localStorage.setItem('darkMode', enabled ? '1' : '0');
     }
+
     function toggleDarkMode() {
       const enabled = !document.body.classList.contains('dark-mode');
       setDarkMode(enabled);
     }
+
     document.getElementById('darkModeSwitch').addEventListener('click', toggleDarkMode);
-    // On load, set mode from localStorage or system preference
+
     (function () {
       const saved = localStorage.getItem('darkMode');
       if (saved === '1' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -919,6 +1465,11 @@
         setDarkMode(false);
       }
     })();
+
+    let editModal;
+    let shareModal;
+    let changePasswordModal;
+    let userManagementModal;
 
     function initCalendar() {
       const calendarEl = document.getElementById('calendar');
@@ -935,25 +1486,365 @@
             center: 'title',
             right: 'dayGridMonth,dayGridWeek'
           },
+          editable: true,
+          droppable: true,
           events: getCalendarEvents(),
           eventClick: function (info) {
             const todoId = parseInt(info.event.id);
-            const todo = todosAll.find(t => t.id === todoId);
-            if (todo) {
-              alert(`Todo: ${todo.text}\nStatus: ${todo.completed ? 'Completed' : 'Active'}\nDue: ${todo.duedate || 'No due date'}`);
-            }
+            openEditModal(todoId);
+          },
+          eventDrop: function (info) {
+            const todoId = parseInt(info.event.id);
+            const newDate = info.event.startStr;
+            updateTodoDueDate(todoId, newDate);
+          },
+          drop: function (info) {
+            const todoId = parseInt(info.draggedEl.dataset.todoId);
+            const newDate = info.dateStr;
+            updateTodoDueDate(todoId, newDate);
+            renderUnscheduledTasks();
           }
         });
         calendar.render();
         console.log('Calendar initialized successfully');
+
+        initDraggables();
       } catch (error) {
         console.error('Error initializing calendar:', error);
       }
     }
 
+    function initDraggables() {
+      const containerEl = document.getElementById('unscheduledContainer');
+      if (containerEl) {
+        new FullCalendar.Draggable(containerEl, {
+          itemSelector: '.draggable-task',
+          eventData: function (eventEl) {
+            return {
+              id: eventEl.dataset.todoId,
+              title: eventEl.innerText,
+              backgroundColor: '#6e3aff',
+              borderColor: '#4a1dff'
+            };
+          }
+        });
+      }
+    }
+
+    function renderUnscheduledTasks() {
+      const container = document.getElementById('unscheduledContainer');
+      const emptyState = document.getElementById('unscheduledEmptyState');
+
+      if (!container) return;
+
+      const unscheduledTasks = todosAll.filter(todo => !todo.completed && !todo.duedate);
+
+      if (unscheduledTasks.length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      container.innerHTML = unscheduledTasks.map(todo => `
+        <div class="draggable-task" data-todo-id="${todo.id}" title="${todo.text}">
+          ${todo.text.replace(/<[^>]*>/g, '').substring(0, 30)}${todo.text.length > 30 ? '...' : ''}
+        </div>
+      `).join('');
+
+      initDraggables();
+    }
+
+    function updateTodoDueDate(todoId, newDate) {
+      const todo = todosAll.find(t => t.id === todoId);
+      if (todo) {
+        todo.duedate = newDate;
+        ws.send(JSON.stringify({
+          type: 'update_todo',
+          todo: todo
+        }));
+      }
+    }
+
+    function openEditModal(todoId) {
+      const todo = todosAll.find(t => t.id === todoId);
+      if (!todo) return;
+
+      document.getElementById('editTaskId').value = todo.id;
+      document.getElementById('editTaskText').value = todo.text.replace(/<[^>]*>/g, '');
+      document.getElementById('editTaskCategory').value = todo.category || '';
+      document.getElementById('editTaskTags').value = (todo.tags || []).join(', ');
+      document.getElementById('editTaskDuedate').value = todo.duedate || '';
+      document.getElementById('editTaskCompleted').checked = todo.completed;
+
+      if (!editModal) {
+        editModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+      }
+      editModal.show();
+    }
+
+    function saveTaskFromModal() {
+      const todoId = parseInt(document.getElementById('editTaskId').value);
+      const todo = todosAll.find(t => t.id === todoId);
+      if (!todo) return;
+
+      todo.text = document.getElementById('editTaskText').value;
+      todo.category = document.getElementById('editTaskCategory').value;
+      todo.tags = document.getElementById('editTaskTags').value
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+      todo.duedate = document.getElementById('editTaskDuedate').value || null;
+      todo.completed = document.getElementById('editTaskCompleted').checked;
+
+      ws.send(JSON.stringify({
+        type: 'update_todo',
+        todo: todo
+      }));
+
+      editModal.hide();
+    }
+
+    function deleteTaskFromModal() {
+      const todoId = parseInt(document.getElementById('editTaskId').value);
+      if (confirm('Are you sure you want to delete this task?')) {
+        deleteTodo(todoId);
+        editModal.hide();
+      }
+    }
+
+    function openShareModal(todoId) {
+      const todo = todosAll.find(t => t.id === todoId);
+      if (!todo) return;
+
+      document.getElementById('shareTaskId').value = todo.id;
+
+      const shareUsersList = document.getElementById('shareUsersList');
+      const sharedWith = todo.shared_with || [];
+
+      shareUsersList.innerHTML = allUsers
+        .filter(u => u !== currentUser)
+        .map(user => `
+          <div class="form-check">
+            <input class="form-check-input share-user-check" type="checkbox"
+                   value="${user}" id="share_${user}"
+                   ${sharedWith.includes(user) ? 'checked' : ''}>
+            <label class="form-check-label" for="share_${user}">
+              <i class="bi bi-person me-1"></i>${user}
+            </label>
+          </div>
+        `).join('');
+
+      if (allUsers.filter(u => u !== currentUser).length === 0) {
+        shareUsersList.innerHTML = '<p class="text-muted">No other users to share with.</p>';
+      }
+
+      if (!shareModal) {
+        shareModal = new bootstrap.Modal(document.getElementById('shareTaskModal'));
+      }
+      shareModal.show();
+    }
+
+    function saveSharing() {
+      const todoId = parseInt(document.getElementById('shareTaskId').value);
+      const todo = todosAll.find(t => t.id === todoId);
+      if (!todo) return;
+
+      const selectedUsers = Array.from(document.querySelectorAll('.share-user-check:checked'))
+        .map(cb => cb.value);
+
+      todo.shared_with = selectedUsers;
+
+      ws.send(JSON.stringify({
+        type: 'share_todo',
+        todo: todo
+      }));
+
+      shareModal.hide();
+    }
+
+    function openChangePasswordModal() {
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+      document.getElementById('passwordChangeAlert').style.display = 'none';
+
+      if (!changePasswordModal) {
+        changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+      }
+      changePasswordModal.show();
+    }
+
+    async function changePassword() {
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const alert = document.getElementById('passwordChangeAlert');
+
+      if (newPassword !== confirmPassword) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'New passwords do not match';
+        alert.style.display = 'block';
+        return;
+      }
+
+      if (newPassword.length < 4) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Password must be at least 4 characters';
+        alert.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert.className = 'alert alert-success';
+          alert.textContent = 'Password changed successfully';
+          alert.style.display = 'block';
+          setTimeout(() => {
+            changePasswordModal.hide();
+          }, 1500);
+        } else {
+          alert.className = 'alert alert-danger';
+          alert.textContent = data.error || 'Failed to change password';
+          alert.style.display = 'block';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Connection error';
+        alert.style.display = 'block';
+      }
+    }
+
+    async function openUserManagementModal() {
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newUserPassword').value = '';
+      document.getElementById('newUserIsAdmin').checked = false;
+      document.getElementById('userManagementAlert').style.display = 'none';
+
+      await refreshUserList();
+
+      if (!userManagementModal) {
+        userManagementModal = new bootstrap.Modal(document.getElementById('userManagementModal'));
+      }
+      userManagementModal.show();
+    }
+
+    async function refreshUserList() {
+      try {
+        const response = await fetch('/api/users');
+        const users = await response.json();
+
+        const userList = document.getElementById('userList');
+        userList.innerHTML = users.map(user => `
+          <div class="user-list-item">
+            <div>
+              <i class="bi bi-person-circle me-2"></i>
+              <strong>${user}</strong>
+              ${user === currentUser ? '<span class="badge bg-primary ms-2">You</span>' : ''}
+            </div>
+            ${user !== currentUser ? `
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            ` : ''}
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Error fetching users:', e);
+      }
+    }
+
+    async function addNewUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newUserPassword').value;
+      const isAdmin = document.getElementById('newUserIsAdmin').checked;
+      const alert = document.getElementById('userManagementAlert');
+
+      if (!username || !password) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Username and password are required';
+        alert.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, is_admin: isAdmin })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert.className = 'alert alert-success';
+          alert.textContent = 'User created successfully';
+          alert.style.display = 'block';
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newUserPassword').value = '';
+          document.getElementById('newUserIsAdmin').checked = false;
+          await refreshUserList();
+          // Update allUsers for sharing
+          allUsers.push(username);
+        } else {
+          alert.className = 'alert alert-danger';
+          alert.textContent = data.error || 'Failed to create user';
+          alert.style.display = 'block';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Connection error';
+        alert.style.display = 'block';
+      }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+        return;
+      }
+
+      const alert = document.getElementById('userManagementAlert');
+
+      try {
+        const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert.className = 'alert alert-success';
+          alert.textContent = 'User deleted successfully';
+          alert.style.display = 'block';
+          await refreshUserList();
+          // Update allUsers for sharing
+          allUsers = allUsers.filter(u => u !== username);
+        } else {
+          alert.className = 'alert alert-danger';
+          alert.textContent = data.error || 'Failed to delete user';
+          alert.style.display = 'block';
+        }
+      } catch (e) {
+        alert.className = 'alert alert-danger';
+        alert.textContent = 'Connection error';
+        alert.style.display = 'block';
+      }
+    }
+
     function getCalendarEvents() {
       const events = todosAll
-        .filter(todo => todo.duedate) // Only include todos with due dates
+        .filter(todo => todo.duedate)
         .map(todo => ({
           id: todo.id.toString(),
           title: todo.text,
@@ -975,14 +1866,35 @@
       }
     }
 
-    // Initialize connection on DOM ready - calendar will be initialized when todos are loaded
-    document.addEventListener('DOMContentLoaded', function () {
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', async function () {
+      // Check authentication first
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) return;
+
       connect();
 
-      // Re-render calendar when tab becomes visible
+      const activeTab = document.getElementById('active-tab');
+      const completedTab = document.getElementById('completed-tab');
       const calendarTab = document.getElementById('calendar-tab');
+
+      if (activeTab) {
+        activeTab.addEventListener('shown.bs.tab', function () {
+          currentTab = 'active';
+          clearTagFilter();
+        });
+      }
+
+      if (completedTab) {
+        completedTab.addEventListener('shown.bs.tab', function () {
+          currentTab = 'completed';
+          clearTagFilter();
+        });
+      }
+
       if (calendarTab) {
         calendarTab.addEventListener('shown.bs.tab', function () {
+          renderUnscheduledTasks();
           if (calendar) {
             calendar.updateSize();
             calendar.render();

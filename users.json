@@ -1,0 +1,14 @@
+{
+  "rams": {
+    "username": "rams",
+    "password_hash": "$2a$10$QV57YP/1rLcG02vERFVT5eShEg3QwzUvd2Tcw4omEuf5TDOPPAXwS",
+    "created_at": "2026-01-15T10:58:39.691831447+01:00",
+    "is_admin": true
+  },
+  "shakal": {
+    "username": "shakal",
+    "password_hash": "$2a$10$pFpX958d9JhFwjgz2OP/OeiaJGY2Jq1RC4HIwFRCr0TsrY6fegLUa",
+    "created_at": "2026-01-15T11:09:59.031896+01:00",
+    "is_admin": true
+  }
+}
