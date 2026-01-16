@@ -22,6 +22,9 @@ local state = {
   buf = nil,
   win = nil,
   show_completed = false,
+  ws_job = nil,        -- WebSocket job ID
+  ws_stdin = nil,      -- Stdin pipe for sending messages
+  pending_callbacks = {}, -- Callbacks waiting for responses
 }
 
 -- Icons
@@ -113,8 +116,75 @@ local function get_base_url()
   return M.config.server_url:gsub("ws://", "http://"):gsub("wss://", "https://"):gsub("/ws$", "")
 end
 
--- Fetch todos via WebSocket (using websocat)
-local function fetch_todos(callback)
+-- Handle incoming WebSocket message
+local function handle_ws_message(data)
+  local ok, json = pcall(vim.json.decode, data)
+  if not ok then return end
+
+  if json.type == "todo_list" then
+    state.todos = json.todos or {}
+    state.users = json.users or {}
+    state.current_user = json.username
+    state.connected = true
+    vim.schedule(function()
+      if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+        render()
+      end
+    end)
+  elseif json.type == "todo_added" then
+    -- Update local state
+    local found = false
+    for i, t in ipairs(state.todos) do
+      if t.id == json.todo.id then
+        state.todos[i] = json.todo
+        found = true
+        break
+      end
+    end
+    if not found then
+      table.insert(state.todos, json.todo)
+    end
+    vim.schedule(function()
+      if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+        render()
+      end
+      vim.notify("Procrastinate: Todo added", vim.log.levels.INFO)
+    end)
+  elseif json.type == "todo_updated" then
+    for i, t in ipairs(state.todos) do
+      if t.id == json.todo.id then
+        state.todos[i] = json.todo
+        break
+      end
+    end
+    vim.schedule(function()
+      if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+        render()
+      end
+    end)
+  elseif json.type == "todo_deleted" then
+    for i, t in ipairs(state.todos) do
+      if t.id == json.todoId then
+        table.remove(state.todos, i)
+        break
+      end
+    end
+    vim.schedule(function()
+      if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
+        render()
+      end
+    end)
+  end
+end
+
+-- Connect to WebSocket server
+local function ws_connect(callback)
+  if state.ws_job then
+    -- Already connected
+    if callback then callback() end
+    return
+  end
+
   if not M.config.session_token then
     vim.notify("Procrastinate: Not authenticated. Run :ProcrastinateAuth", vim.log.levels.ERROR)
     return
@@ -125,64 +195,112 @@ local function fetch_todos(callback)
     return
   end
 
-  local cmd = string.format(
-    'timeout 3 websocat -H "Cookie: session_token=%s" "%s" 2>/dev/null | head -1',
-    M.config.session_token,
-    M.config.server_url
-  )
+  local stdin = vim.loop.new_pipe(false)
+  local stdout = vim.loop.new_pipe(false)
+  local stderr = vim.loop.new_pipe(false)
 
-  vim.fn.jobstart(cmd, {
-    stdout_buffered = true,
-    on_stdout = function(_, data)
-      if data and data[1] and data[1] ~= "" then
-        local ok, json = pcall(vim.json.decode, data[1])
-        if ok and json.type == "todo_list" then
-          state.todos = json.todos or {}
-          state.users = json.users or {}
-          state.current_user = json.username
-          state.connected = true
-          if callback then callback() end
-        end
-      end
-    end,
-    on_stderr = function(_, data)
-      if data and data[1] and data[1] ~= "" then
-        vim.schedule(function()
-          vim.notify("Procrastinate: " .. data[1], vim.log.levels.ERROR)
-        end)
-      end
-    end,
-  })
-end
+  state.ws_stdin = stdin
 
--- WebSocket send operation
-local function ws_send(msg, callback)
-  if not M.config.session_token then
-    vim.notify("Procrastinate: Not authenticated", vim.log.levels.ERROR)
+  local handle, pid
+  handle, pid = vim.loop.spawn("websocat", {
+    args = {
+      "-H", "Cookie: session_token=" .. M.config.session_token,
+      M.config.server_url
+    },
+    stdio = { stdin, stdout, stderr }
+  }, function(code, signal)
+    -- On exit
+    vim.schedule(function()
+      state.connected = false
+      state.ws_job = nil
+      state.ws_stdin = nil
+      if code ~= 0 then
+        vim.notify("Procrastinate: WebSocket disconnected", vim.log.levels.WARN)
+      end
+    end)
+    stdin:close()
+    stdout:close()
+    stderr:close()
+    if handle then handle:close() end
+  end)
+
+  if not handle then
+    vim.notify("Procrastinate: Failed to start websocat. Is it installed?", vim.log.levels.ERROR)
     return
   end
 
-  local json_msg = vim.json.encode(msg)
+  state.ws_job = { handle = handle, pid = pid }
 
-  local cmd = string.format(
-    'echo \'%s\' | timeout 3 websocat -H "Cookie: session_token=%s" "%s" 2>/dev/null | head -2',
-    json_msg:gsub("'", "'\\''"),
-    M.config.session_token,
-    M.config.server_url
-  )
-
-  vim.fn.jobstart(cmd, {
-    stdout_buffered = true,
-    on_exit = function()
-      if callback then
-        vim.schedule(callback)
+  -- Read stdout (incoming messages)
+  local buffer = ""
+  stdout:read_start(function(err, data)
+    if err then
+      vim.schedule(function()
+        vim.notify("Procrastinate: Read error: " .. err, vim.log.levels.ERROR)
+      end)
+      return
+    end
+    if data then
+      buffer = buffer .. data
+      -- Process complete lines
+      while true do
+        local newline = buffer:find("\n")
+        if not newline then break end
+        local line = buffer:sub(1, newline - 1)
+        buffer = buffer:sub(newline + 1)
+        if line ~= "" then
+          handle_ws_message(line)
+        end
       end
-    end,
-  })
+    end
+  end)
+
+  -- Read stderr
+  stderr:read_start(function(err, data)
+    if data and data ~= "" then
+      vim.schedule(function()
+        -- Only show errors, not connection messages
+        if data:find("error") or data:find("Error") then
+          vim.notify("Procrastinate: " .. data, vim.log.levels.ERROR)
+        end
+      end)
+    end
+  end)
+
+  state.connected = true
+  if callback then
+    -- Give it a moment to receive initial todo_list
+    vim.defer_fn(callback, 500)
+  end
+end
+
+-- Disconnect WebSocket
+local function ws_disconnect()
+  if state.ws_stdin then
+    state.ws_stdin:close()
+    state.ws_stdin = nil
+  end
+  if state.ws_job and state.ws_job.handle then
+    state.ws_job.handle:kill(15) -- SIGTERM
+    state.ws_job = nil
+  end
+  state.connected = false
+end
+
+-- Send message via WebSocket
+local function ws_send(msg)
+  if not state.ws_stdin or not state.connected then
+    vim.notify("Procrastinate: Not connected", vim.log.levels.ERROR)
+    return false
+  end
+
+  local json_msg = vim.json.encode(msg) .. "\n"
+  state.ws_stdin:write(json_msg)
+  return true
 end
 
 -- Render the todo list
-local function render()
+function render()
   if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then
     return
   end
@@ -204,8 +322,11 @@ local function render()
   table.insert(highlights, { line = 4, col = 0, end_col = -1, hl = "ProcrastinateTitle" })
 
   -- Connection status
-  local status = state.connected and "  Connected as: " .. (state.current_user or "unknown") or "  Disconnected"
+  local conn_icon = state.connected and "●" or "○"
+  local conn_color = state.connected and "ProcrastinateOwner" or "ProcrastinateDue"
+  local status = string.format("  %s Connected as: %s", conn_icon, state.current_user or "unknown")
   table.insert(lines, status)
+  table.insert(highlights, { line = #lines, col = 2, end_col = 3, hl = conn_color })
   table.insert(lines, "")
 
   -- Section header
@@ -229,7 +350,6 @@ local function render()
   else
     for i, todo in ipairs(filtered) do
       local line_num = #lines + 1
-      todo_lines[line_num] = i
 
       local completed = todo.completed == true
       local icon = completed and icons.checked or icons.unchecked
@@ -292,7 +412,7 @@ local function render()
         end
       end
 
-      -- Store todo reference
+      -- Store todo reference (use actual index in state.todos)
       local actual_index
       for idx, t in ipairs(state.todos) do
         if t.id == todo.id then
@@ -301,6 +421,10 @@ local function render()
         end
       end
       todo_lines[line_num] = actual_index
+      -- Also mark metadata line with same todo
+      if #meta > 4 then
+        todo_lines[#lines] = actual_index
+      end
     end
   end
 
@@ -397,11 +521,14 @@ end
 -- Device auth flow
 function M.auth()
   -- Ask for server URL if not set
-  local server_url = M.config.server_url
+  local default_url = M.config.server_url
+  if default_url then
+    default_url = default_url:gsub("/ws$", "")
+  end
 
   vim.ui.input({
     prompt = "Server URL (e.g., http://localhost:8090): ",
-    default = server_url or "http://localhost:8090",
+    default = default_url or "http://localhost:8090",
   }, function(url)
     if not url or url == "" then
       vim.notify("Procrastinate: Auth cancelled", vim.log.levels.WARN)
@@ -409,7 +536,7 @@ function M.auth()
     end
 
     -- Normalize URL
-    url = url:gsub("/$", "")
+    url = url:gsub("/$", ""):gsub("/ws$", "")
     M.config.server_url = url .. "/ws"
     local base_url = url
 
@@ -575,11 +702,11 @@ function M.open()
 
   -- Show loading
   vim.api.nvim_buf_set_option(state.buf, "modifiable", true)
-  vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, { "", "  Loading..." })
+  vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, { "", "  Connecting..." })
   vim.api.nvim_buf_set_option(state.buf, "modifiable", false)
 
-  -- Fetch and render
-  fetch_todos(function()
+  -- Connect and render
+  ws_connect(function()
     vim.schedule(render)
   end)
 end
@@ -590,12 +717,22 @@ function M.close()
   end
   state.win = nil
   state.buf = nil
+  -- Keep WebSocket connected for background updates
+end
+
+function M.disconnect()
+  ws_disconnect()
+  vim.notify("Procrastinate: Disconnected", vim.log.levels.INFO)
 end
 
 function M.refresh()
-  fetch_todos(function()
-    vim.schedule(render)
-  end)
+  if not state.connected then
+    ws_connect(function()
+      vim.schedule(render)
+    end)
+  else
+    render()
+  end
 end
 
 function M.toggle_view()
@@ -614,9 +751,7 @@ function M.add_todo()
         shared_with = {},
       }
 
-      ws_send({ type = "add_todo", todo = todo }, function()
-        M.refresh()
-      end)
+      ws_send({ type = "add_todo", todo = todo })
     end
   end)
 end
@@ -628,11 +763,11 @@ function M.toggle_todo()
     return
   end
 
-  todo.completed = not todo.completed
+  -- Create a copy with toggled completed status
+  local updated_todo = vim.tbl_deep_extend("force", {}, todo)
+  updated_todo.completed = not todo.completed
 
-  ws_send({ type = "update_todo", todo = todo }, function()
-    M.refresh()
-  end)
+  ws_send({ type = "update_todo", todo = updated_todo })
 end
 
 function M.delete_todo()
@@ -644,18 +779,18 @@ function M.delete_todo()
 
   vim.ui.select({ "Yes", "No" }, { prompt = "Delete this todo?" }, function(choice)
     if choice == "Yes" then
-      ws_send({ type = "delete_todo", todoId = todo.id }, function()
-        M.refresh()
-      end)
+      ws_send({ type = "delete_todo", todoId = todo.id })
     end
   end)
 end
 
 function M.logout()
+  ws_disconnect()
   M.config.session_token = nil
   save_config()
   state.connected = false
   state.current_user = nil
+  state.todos = {}
   vim.notify("Procrastinate: Logged out", vim.log.levels.INFO)
 end
 
