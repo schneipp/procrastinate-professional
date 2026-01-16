@@ -270,16 +270,26 @@
 
 ;;; Device Authentication
 
+(defun procrastinate--to-ws-url (url)
+  "Convert HTTP URL to WebSocket URL."
+  (let ((ws-url url))
+    (setq ws-url (replace-regexp-in-string "^http://" "ws://" ws-url))
+    (setq ws-url (replace-regexp-in-string "^https://" "wss://" ws-url))
+    (unless (string-match-p "/ws$" ws-url)
+      (setq ws-url (concat (replace-regexp-in-string "/$" "" ws-url) "/ws")))
+    ws-url))
+
 (defun procrastinate-auth ()
   "Authenticate with the Procrastinate server using device flow."
   (interactive)
   (let ((url (read-string "Server URL (e.g., http://localhost:8090): "
                           (or (and procrastinate-server-url
-                                   (replace-regexp-in-string "/ws$" "" procrastinate-server-url))
+                                   (replace-regexp-in-string "^wss?://" "http://"
+                                     (replace-regexp-in-string "/ws$" "" procrastinate-server-url)))
                               "http://localhost:8090"))))
     (setq url (replace-regexp-in-string "/$" "" url))
     (setq procrastinate--auth-base-url url)
-    (setq procrastinate-server-url (concat url "/ws"))
+    (setq procrastinate-server-url (procrastinate--to-ws-url url))
 
     ;; Request device code
     (let ((url-request-method "POST")
